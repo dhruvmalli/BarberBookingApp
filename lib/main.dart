@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:project_sem7/uiscreen/Home.dart';
 import 'package:project_sem7/uiscreen/StartingPage.dart';
+import 'package:project_sem7/uiscreen/main_home_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
@@ -28,7 +29,7 @@ class MyApp extends StatelessWidget {
       builder: (context, child) {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
-          home: isLoggedIn ? HomeScreen() : Startingpage(),
+          home: isLoggedIn ? MainHomePage() : Startingpage(),
         );
       },
     );

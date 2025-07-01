@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:location/location.dart';
@@ -38,17 +37,28 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void initLocationUpdates() async {
-    final serviceEnabled = await location.serviceEnabled() ||
-        await location.requestService();
-    final permissionGranted = await location.hasPermission() != PermissionStatus.denied ||
-        await location.requestPermission() == PermissionStatus.granted;
+    bool serviceEnabled = await location.serviceEnabled();
+    if (!serviceEnabled) {
+      serviceEnabled = await location.requestService();
+    }
+    if (!serviceEnabled) {
+      setState(() => message = 'Location services disabled.');
+      return;
+    }
 
-    if (!serviceEnabled || !permissionGranted) {
-      setState(() => message = 'Location service or permission denied.');
+    PermissionStatus permissionGranted = await location.hasPermission();
+    if (permissionGranted == PermissionStatus.denied) {
+      permissionGranted = await location.requestPermission();
+    }
+    if (permissionGranted != PermissionStatus.granted) {
+      setState(() => message = 'Location permission denied.');
       return;
     }
 
     previousLocation = await location.getLocation();
+    if (previousLocation != null) {
+      fetchAndStoreFromCoords(previousLocation!.latitude!, previousLocation!.longitude!);
+    }
 
     locationSubscription = location.onLocationChanged.listen((currentLocation) {
       if (previousLocation == null ||
@@ -58,6 +68,9 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     });
   }
+
+
+
 
   double calculateDistance(LocationData a, LocationData b) {
     const R = 6371000; // Radius of Earth in meters
