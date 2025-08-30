@@ -25,7 +25,6 @@ class _LoginState extends State<Login> {
   bool _isPasswordVisible = false;
   String? _authErrorMessage;
 
-
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -47,7 +46,10 @@ class _LoginState extends State<Login> {
                 padding: EdgeInsets.only(left: 23.w),
                 child: Text(
                   "Login to your Account",
-                  style: TextStyle(fontSize: 45.sp, fontWeight: FontWeight.bold, color: Colors.black),
+                  style: TextStyle(
+                      fontSize: 45.sp,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black),
                 ),
               ),
               SizedBox(height: 40.h),
@@ -65,13 +67,15 @@ class _LoginState extends State<Login> {
                           hintStyle: const TextStyle(color: Colors.grey),
                           filled: true,
                           fillColor: Colors.grey.shade50,
-                          prefixIcon: const Icon(Icons.email, color: Colors.black),
+                          prefixIcon:
+                          const Icon(Icons.email, color: Colors.black),
                           enabledBorder: OutlineInputBorder(
                             borderSide: const BorderSide(color: Colors.grey),
                             borderRadius: BorderRadius.circular(10.r),
                           ),
                           focusedBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: Colors.black, width: 2.w),
+                            borderSide:
+                            BorderSide(color: Colors.black, width: 2.w),
                             borderRadius: BorderRadius.circular(10.r),
                           ),
                         ),
@@ -97,13 +101,17 @@ class _LoginState extends State<Login> {
                           hintStyle: const TextStyle(color: Colors.grey),
                           filled: true,
                           fillColor: Colors.grey.shade50,
-                          prefixIcon: const Icon(Icons.password, color: Colors.black),
+                          prefixIcon:
+                          const Icon(Icons.password, color: Colors.black),
                           suffixIcon: IconButton(
                             onPressed: () {
-                              setState(() => _isPasswordVisible = !_isPasswordVisible);
+                              setState(() =>
+                              _isPasswordVisible = !_isPasswordVisible);
                             },
                             icon: Icon(
-                              _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                              _isPasswordVisible
+                                  ? Icons.visibility
+                                  : Icons.visibility_off,
                               color: Colors.black,
                             ),
                           ),
@@ -112,7 +120,8 @@ class _LoginState extends State<Login> {
                             borderRadius: BorderRadius.circular(10.r),
                           ),
                           focusedBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: Colors.black, width: 2.w),
+                            borderSide:
+                            BorderSide(color: Colors.black, width: 2.w),
                             borderRadius: BorderRadius.circular(10.r),
                           ),
                         ),
@@ -130,12 +139,14 @@ class _LoginState extends State<Login> {
                         onPressed: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => Forgetpassword()),
+                            MaterialPageRoute(
+                                builder: (context) => Forgetpassword()),
                           );
                         },
                         child: Text(
                           "Forget Password?",
-                          style: TextStyle(color: Colors.orange, fontSize: 15.sp),
+                          style: TextStyle(
+                              color: Colors.orange, fontSize: 15.sp),
                         ),
                       ),
                     ),
@@ -155,20 +166,51 @@ class _LoginState extends State<Login> {
                         onPressed: () async {
                           if (_formkey.currentState!.validate()) {
                             try {
-                              await FirebaseAuth.instance.signInWithEmailAndPassword(
+                              // Step 1: Try Firebase login
+                              UserCredential userCredential =
+                              await FirebaseAuth.instance
+                                  .signInWithEmailAndPassword(
                                 email: _emailController.text.trim(),
                                 password: _passwordController.text.trim(),
                               );
 
-                              // ✅ Set shared preference flag
-                              final prefs = await SharedPreferences.getInstance();
+                              final user = userCredential.user;
+                              if (user == null) {
+                                setState(() => _authErrorMessage =
+                                "Login failed. Please try again.");
+                                return;
+                              }
+
+                              // Step 2: Check if user is blocked in Firestore
+                              final userDoc = await FirebaseFirestore.instance
+                                  .collection("BookedSlots")
+                                  .doc(user.uid)
+                                  .get();
+
+                              if (userDoc.exists &&
+                                  (userDoc.data()?['blocked'] == true)) {
+                                // Blocked user
+                                await FirebaseAuth.instance.signOut();
+
+                                setState(() {
+                                  _authErrorMessage =
+                                  "This email ID is blocked.";
+                                });
+                                return;
+                              }
+
+                              // Step 3: Save login state
+                              final prefs =
+                              await SharedPreferences.getInstance();
                               await prefs.setBool('is_logged_in', true);
                               await prefs.setString('user_type', 'customer');
 
                               if (mounted) {
                                 Navigator.pushReplacement(
                                   context,
-                                  MaterialPageRoute(builder: (context) => const BottomNavBar(initialIndex: 0)),
+                                  MaterialPageRoute(
+                                      builder: (context) =>
+                                      const BottomNavBar(initialIndex: 0)),
                                 );
                               }
                             } on FirebaseAuthException catch (e) {
@@ -180,7 +222,8 @@ class _LoginState extends State<Login> {
                               }
                               setState(() => _authErrorMessage = message);
                             } catch (e) {
-                              setState(() => _authErrorMessage = 'An error occurred. Please try again.');
+                              setState(() => _authErrorMessage =
+                              'An error occurred. Please try again.');
                             }
                           }
                         },
@@ -192,21 +235,32 @@ class _LoginState extends State<Login> {
                         ),
                         child: Text(
                           "Login",
-                          style: TextStyle(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.bold),
                         ),
                       ),
                     ),
                     SizedBox(height: 20.h),
                     GestureDetector(
                       onTap: () {
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => Signup()));
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => Signup()));
                       },
-                      child: RichText(text: TextSpan(
-                          children: [
-                            TextSpan(text: "Don't have an account?", style: TextStyle(fontSize: 14.sp,color: Colors.black)),
-                            TextSpan(text: " Sign Up" ,style: TextStyle(color: Colors.orange,fontSize: 14.sp)),
-                          ]
-                      )),
+                      child: RichText(
+                          text: TextSpan(children: [
+                            TextSpan(
+                                text: "Don't have an account?",
+                                style: TextStyle(
+                                    fontSize: 14.sp, color: Colors.black)),
+                            TextSpan(
+                                text: " Sign Up",
+                                style: TextStyle(
+                                    color: Colors.orange, fontSize: 14.sp)),
+                          ])),
                     ),
                   ],
                 ),
