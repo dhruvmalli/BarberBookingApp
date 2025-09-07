@@ -24,5 +24,5 @@ FreshCut is a mobile application built using Flutter with Firebase as the backen
 </ul>
 
 <h3> App Screenshot</h3>
-![Image](https://github.com/user-attachments/assets/6603b23b-1bb1-45ee-a6fc-a633b3620c68)
-
+<img src="https://github.com/user-attachments/assets/6603b23b-1bb1-45ee-a6fc-a633b3620c68" width="200" height="200">
+ 
