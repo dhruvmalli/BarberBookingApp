@@ -36,3 +36,12 @@ FreshCut is a mobile application built using Flutter with Firebase as the backen
 <img src="https://github.com/user-attachments/assets/e9d6ebe4-01c2-46af-936e-f7e0c72c44e3" width="200" height="400">
 <img src="https://github.com/user-attachments/assets/f1d294da-4dab-425d-8c8f-fd44c006ca55" width="200" height="400">
 </div>
+
+<h3>References</h3>
+<ul>
+  <li><a href="https://flutter.dev/" target="_blank">Flutter Official Website</a></li>
+  <li><a href="https://firebase.google.com/docs" target="_blank">Google Firebase Documentation</a></li>
+  <li><a href="https://developers.google.com/maps/documentation" target="_blank">Google Maps Platform Documentation</a></li>
+  <li><a href="https://pub.dev/" target="_blank">Pub Dev</a></li>
+  <li><a href="https://www.figma.com/" target="_blank">Figma UI Kit - Csca Barber & Salon</a></li>
+</ul>
