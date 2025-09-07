@@ -47,6 +47,6 @@ FreshCut is a mobile application built using Flutter with Firebase as the backen
 
 <h3>Developed by</h3>
 <ol>
-  <li><b>Dhruv Malli</b></li>
-  <li><b>Prem Kamothi</b></li>
+  <b><li>Dhruv Malli</li></b>
+  <b><li>Prem Kamothi</li></b>
 </ol>
