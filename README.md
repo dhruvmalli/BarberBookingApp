@@ -6,13 +6,23 @@ FreshCut is a mobile application built using Flutter with Firebase as the backen
 <h3> Feature </h3>
 <ul>
 <li><b> Role based Login/Sign Up - </b> provide separate login and sign up as customer and owner.</li>
-<b> Providing Nearby Shop </b> using Google Place API.<br>
-<b> Customer Dashboard </b> consists of shop list, liked shop, appointment option, shop details<br>
-<b> Barber Daseboard </b> consists of managing user requests (accept/decline) , updating shop details, Registaring shop.<br> 
-<b> Booking Slot Management</b> helps prevent overbooking by allowing real-time slot tracking.<br>
-<b> Real-time Updates</b> synchronized with Firestore to keep customer and barber data in sync.<br>
-<b> Secure Data Access</b> ensured through separate authentication for customers and barbers.<br>
+<li><b> Providing Nearby Shop </b> using Google Place API.</li>
+<li><b> Customer Dashboard </b> consists of shop list, liked shop, appointment option, shop details</li>
+<li><b> Barber Daseboard </b> consists of managing user requests (accept/decline) , updating shop details, Registaring shop.</li>
+<li><b> Booking Slot Management</b> helps prevent overbooking by allowing real-time slot tracking.</li>
+<li><b> Real-time Updates</b> synchronized with Firestore to keep customer and barber data in sync.</li>
+<li><b> Secure Data Access</b> ensured through separate authentication for customers and barbers.</li>
 </ul>
 
-<h3> Tech Skill</h3>
+<h3> Tech Stack</h3>
+<ul>
+  <li>Flutter & Dart</li>
+  <li>Firebase (Authentication and Firestore Database)</li>
+  <li>Android Studio</li>
+  <li>Google Maps Platform (Maps SDK, Places API, Directions API)</li>
+  <li>GitHub</li>
+</ul>
+
+<h3> App Screenshot</h3>
+<!-- Uploading "20250905_184423-min.jpg"... -->
 
