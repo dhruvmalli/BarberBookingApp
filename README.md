@@ -7,7 +7,7 @@ FreshCut is a mobile application built using Flutter with Firebase as the backen
 <ul>
 <li><b> Role based Login/Sign Up - </b> provide separate login and sign up as customer and owner.</li>
 <li><b> Providing Nearby Shop </b> using Google Place API.</li>
-<li><b> Customer Dashboard </b> consists of shop list, liked shop, appointment option, shop details</li>
+<li><b> Customer Dashboard </b> consists of shop list, liked shop, appointment option, shop details.</li>
 <li><b> Barber Daseboard </b> consists of managing user requests (accept/decline) , updating shop details, Registaring shop.</li>
 <li><b> Booking Slot Management</b> helps prevent overbooking by allowing real-time slot tracking.</li>
 <li><b> Real-time Updates</b> synchronized with Firestore to keep customer and barber data in sync.</li>
@@ -42,5 +42,11 @@ FreshCut is a mobile application built using Flutter with Firebase as the backen
   <li><a href="https://firebase.google.com/docs" target="_blank">Google Firebase Documentation</a></li>
   <li><a href="https://developers.google.com/maps/documentation" target="_blank">Google Maps Platform Documentation</a></li>
   <li><a href="https://pub.dev/" target="_blank">Pub Dev</a></li>
-  <li><a href="https://www.figma.com/design/fmbEUKYHVjMVW5bd3g6m5m/Casca---Barber---Salon-App-UI-Kit--Preview-?node-id=1027-18840&p=f&t=hlppSJfopdI0rF05-0" target="_blank">Figma UI Kit - Csca Barber & Salon</a></li>
+  <li><a href="https://www.figma.com/design/fmbEUKYHVjMVW5bd3g6m5m/Casca---Barber---Salon-App-UI-Kit--Preview-?node-id=1027-18840&p=f&t=hlppSJfopdI0rF05-0" target="_blank">Figma UI Kit - Casca Barber & Salon</a></li>
 </ul>
+
+<h3>Developed by</h3>
+<ol>
+  <li><b>Dhruv Malli</b></li>
+  <li><b>Prem Kamothi</b></li>
+</ol>
