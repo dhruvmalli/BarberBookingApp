@@ -1,16 +1,8 @@
-# project_sem7
+#Project Title
 
-A new Flutter project.
+FreshCut - Barber Booking App
 
-## Getting Started
+##About
+FreshCut is a mobile application built using Flutter with Firebase as the backend. The app is designed to simplify the salon booking process by allowing customers to easily discover nearby barber shops, view detailed shop profiles, explore available services, and book appointments seamlessly. It eliminates the inconvenience of traditional walk-in appointments and manual scheduling by offering real-time slot availability along with navigation support.
 
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+##Feature
