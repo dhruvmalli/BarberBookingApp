@@ -1,6 +1,6 @@
 <h1 align="center"> FreshCut - Barber Booking App </h1>
 
-<h1> About </h1>
-FreshCut is a mobile application built using Flutter with Firebase as the backend. The app is designed to simplify the salon booking process by allowing customers to easily discover nearby barber shops, view detailed shop profiles, explore available services, and book appointments seamlessly. It eliminates the inconvenience of traditional walk-in appointments and manual scheduling by offering real-time slot availability along with navigation support.
+<h2> About </h2>
+FreshCut is a mobile application built using Flutter with Firebase as the backend. The app is designed to simplify the salon booking process by allowing customers to easily discover nearby barber shops, view detailed shop profiles, explore available services, and book appointments seamlessly. It removes the hassle of traditional walk-in visits and help in manual scheduling by providing real-time appointment slots.
 
-<h1> Feature </h1>
+<h3> Feature </h3>
