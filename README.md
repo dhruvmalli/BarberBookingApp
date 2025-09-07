@@ -5,4 +5,8 @@ FreshCut is a mobile application built using Flutter with Firebase as the backen
 
 <h3> Feature </h3>
 <b> -> Role based Login/Sign Up - </b> provide separate login and sign up as customer and owner.<br>
-<b> -> Providing nearby shop </b> using Google Place API.<br>
+<b> -> Providing Nearby Shop </b> using Google Place API.<br>
+<b> -> Customer Dashboard </b> consists of shop list, liked shop, appointment option, shop details<br>
+<b> -> Barber Daseboard </b> consists of managing user requests (accept/decline) , updating shop details, Registaring shop.<br> 
+<b>→ Booking Slot Management</b> helps prevent overbooking by allowing real-time slot tracking.<br>
+<b> </b>
