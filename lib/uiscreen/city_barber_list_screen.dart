@@ -24,7 +24,7 @@ class _CityBarberListScreenState extends State<CityBarberListScreen> {
   }
 
   Future<void> fetchBarbersByCity(String city) async {
-    const apiKey = 'AIzaSyA5xVaMFV6c5rM4BCq1uVzUmXD_MxGwEZY';
+    const apiKey = 'AIzaSyDG_h6XHM6HpvXkUsHT_PhmxacLuK57CAg';
     final url = Uri.parse(
       'https://maps.googleapis.com/maps/api/place/textsearch/json?query=barber+in+$city&key=$apiKey',
     );
@@ -179,7 +179,7 @@ class _CityBarberListScreenState extends State<CityBarberListScreen> {
                                           ? Colors.green
                                           : Colors.red,
                                     ),
-                                    const SizedBox(width: 6),
+                                    const SizedBox(width: 7),
                                     Text(
                                       barber.openNow
                                           ? 'Open Now'

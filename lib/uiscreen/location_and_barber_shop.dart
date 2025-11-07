@@ -18,7 +18,7 @@ class _LocationAndBarberShopState extends State<LocationAndBarberShop> {
   Position? _currentPosition;
   Set<Marker> _markers = {};
   String _selectedShopName = '';
-  final String apiKey = 'AIzaSyA5xVaMFV6c5rM4BCq1uVzUmXD_MxGwEZY';
+  final String apiKey = 'AIzaSyDG_h6XHM6HpvXkUsHT_PhmxacLuK57CAg';
 
 
 

@@ -6,7 +6,6 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:project_sem7/uiscreen/Profile.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'bottom_nav_bar.dart';
-import 'RegisterPage.dart';
 
 class Signupowner extends StatefulWidget {
   const Signupowner({super.key});

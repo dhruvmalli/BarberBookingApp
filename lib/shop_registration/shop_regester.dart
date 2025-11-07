@@ -23,7 +23,7 @@ class _ShopRegisterState extends State<ShopRegister> {
   bool _isLoading = true;
   String? _selectedPlaceId;
 
-  final String _googleApiKey = "AIzaSyA5xVaMFV6c5rM4BCq1uVzUmXD_MxGwEZY";
+  final String _googleApiKey = "AIzaSyDG_h6XHM6HpvXkUsHT_PhmxacLuK57CAg";
 
   @override
   void initState() {

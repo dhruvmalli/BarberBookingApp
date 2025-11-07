@@ -36,7 +36,7 @@ class _LikedShopsState extends State<LikedShops> {
           },
         ),
         title: const Text(
-          "Licked Shops",
+          "Liked Shops",
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,

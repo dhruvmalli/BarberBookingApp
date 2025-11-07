@@ -628,7 +628,7 @@ class _ShopProfileState extends State<ShopProfile> {
 
 
 class GooglePlacesService {
-  final String apiKey = "AIzaSyA5xVaMFV6c5rM4BCq1uVzUmXD_MxGwEZY";
+  final String apiKey = "AIzaSyDG_h6XHM6HpvXkUsHT_PhmxacLuK57CAg";
 
   /// Fetch place details by placeId
   Future<BarberModel?> getPlaceDetails(String placeId) async {

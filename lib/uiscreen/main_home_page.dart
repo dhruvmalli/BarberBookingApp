@@ -21,7 +21,7 @@ class MainHomePage extends StatefulWidget {
 }
 
 class GooglePlacesService {
-  final String _apiKey = 'AIzaSyA5xVaMFV6c5rM4BCq1uVzUmXD_MxGwEZY';
+  final String _apiKey = 'AIzaSyDG_h6XHM6HpvXkUsHT_PhmxacLuK57CAg';
 
   Future<List<BarberModel>> getNearbyBarbers(
       double userLat, double userLng) async {
@@ -108,7 +108,7 @@ Future<Position> _getCurrentPosition() async {
 }
 
 Future<String> getCityFromCoordinates(double lat, double lng) async {
-  const apiKey = 'AIzaSyA5xVaMFV6c5rM4BCq1uVzUmXD_MxGwEZY';
+  const apiKey = 'AIzaSyDG_h6XHM6HpvXkUsHT_PhmxacLuK57CAg';
   final url = Uri.parse(
     'https://maps.googleapis.com/maps/api/geocode/json?latlng=$lat,$lng&key=$apiKey',
   );
@@ -135,8 +135,7 @@ Future<String> getCityFromCoordinates(double lat, double lng) async {
 
 class _MainHomePageState extends State<MainHomePage> {
   late Future<List<BarberModel>> _barberFuture;
-  final List<String> _services = ["All"];
-  String _selectedService = "All";
+
 
   @override
   void initState() {
@@ -187,34 +186,8 @@ class _MainHomePageState extends State<MainHomePage> {
     }
   }
 
-  Widget _buildServiceButton(String label) {
-    final isSelected = _selectedService == label;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 6),
-      child: ElevatedButton(
-        onPressed: () {
-          setState(() {
-            _selectedService = label;
-          });
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: isSelected ? Colors.orangeAccent : Colors.white,
-          foregroundColor: isSelected ? Colors.white : Colors.orangeAccent,
-          elevation: 0,
-          side: const BorderSide(
-            color: Colors.orangeAccent,
-            width: 2.8,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(22),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        ),
-        child: Text(label),
-      ),
-    );
-  }
+
 
   String _getGreetingMessage(String userName) {
     final hour = DateTime.now().hour;
@@ -360,17 +333,6 @@ class _MainHomePageState extends State<MainHomePage> {
                         ),
                       ),
                     ],
-                  ),
-                ),
-                SizedBox(
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 6),
-                    child: Row(
-                      children: _services
-                          .map((service) => _buildServiceButton(service))
-                          .toList(),
-                    ),
                   ),
                 ),
                 BarberCardList(barbers: barbers),

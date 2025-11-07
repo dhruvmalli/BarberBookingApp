@@ -31,6 +31,7 @@ class _EditShopProfileState extends State<EditShopProfile> {
   final TextEditingController _addressController = TextEditingController();
   final TextEditingController _websiteController = TextEditingController();
   final TextEditingController _aboutController = TextEditingController();
+  final TextEditingController _numberController = TextEditingController();
 
   final FocusNode _aboutFocus = FocusNode();
 
@@ -276,6 +277,7 @@ class _EditShopProfileState extends State<EditShopProfile> {
         'additionalContactNumbers': contacts.length > 1 ? contacts.sublist(1) : [],
         'websiteLink': _websiteController.text.trim(),
         'aboutShop': _aboutController.text.trim(),
+        'numberofbarber': _numberController.text.trim(),
         'monFriStart': _monToFriStart != null ? formatTime(_monToFriStart) : null,
         'monFriEnd': _monToFriEnd != null ? formatTime(_monToFriEnd) : null,
         'satSunStart': _satToSunStart != null ? formatTime(_satToSunStart) : null,
@@ -465,6 +467,13 @@ class _EditShopProfileState extends State<EditShopProfile> {
             SizedBox(height: 10),
             _buildPhotoSection("Add Photos", lightGrey, mediumGreyBorder, false),
             _buildPhotoSection("Add Photos of your Specialists", lightGrey, mediumGreyBorder,true),
+            const SizedBox(height: 15),
+            Align(alignment: Alignment.centerLeft,
+              child: Text("Enter Number Of Barber",style: TextStyle(fontWeight: FontWeight.bold,fontSize: 16),),),
+            _buildCardTextField(
+                _numberController,
+                "Number of Barber",
+                lightGrey),
             const SizedBox(height: 20),
             // Manage Services
             ListTile(
@@ -483,7 +492,6 @@ class _EditShopProfileState extends State<EditShopProfile> {
                 );
               },
             ),
-            const SizedBox(height: 20),
           ],
         ),
       ),
@@ -525,7 +533,6 @@ class _EditShopProfileState extends State<EditShopProfile> {
       ),
     );
   }
-
 
   Widget _buildCardTextField(
       TextEditingController controller,

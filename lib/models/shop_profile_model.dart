@@ -6,6 +6,7 @@ class ShopProfileDetails {
   final String? phoneNumber;
   final String? website;
   final String? about;
+  final String? numberofbarber;
 
   // Working hours
   final String? monFriStart;
@@ -35,6 +36,7 @@ class ShopProfileDetails {
     this.primaryContactNumber,
     this.additionalContactNumbers,
     this.services,
+    this.numberofbarber
   });
 
   factory ShopProfileDetails.fromMap(String id, Map<String, dynamic> data) {
@@ -49,6 +51,7 @@ class ShopProfileDetails {
         monFriEnd: data['monFriEnd'],
         satSunStart: data['satSunStart'],
         satSunEnd: data['satSunEnd'],
+        numberofbarber: data['numberofbarber'],
 
         shopPhotos: data['shopPhotos'] != null
             ? List<String>.from(data['shopPhotos'])

@@ -362,6 +362,7 @@ class _OwnerMainScreenState extends State<OwnerMainScreen> {
                                 (booking['profile'] ?? {}) as Map<String, dynamic>;
 
                                 return Card(
+                                  color: Colors.white,
                                   margin: const EdgeInsets.only(bottom: 12),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
@@ -409,6 +410,7 @@ class _OwnerMainScreenState extends State<OwnerMainScreen> {
                             status == true && arrived == null;
 
                         return Card(
+                          color: Colors.white,
                           margin: const EdgeInsets.only(bottom: 16),
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16)),
