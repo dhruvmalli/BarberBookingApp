@@ -3,7 +3,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:project_sem7/Services.dart';
 import 'package:project_sem7/uiscreen/DashboardScreen.dart';
 import 'package:project_sem7/uiscreen/ForgetPassword.dart';
