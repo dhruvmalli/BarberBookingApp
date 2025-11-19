@@ -15,7 +15,6 @@ class _ShopRegisterState extends State<ShopRegister> {
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _shopNameController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
-  List<TextEditingController> _phoneControllers = [TextEditingController()];
 
   List<Map<String, dynamic>> _searchResults = [];
   bool _isSearching = false;
@@ -51,12 +50,6 @@ class _ShopRegisterState extends State<ShopRegister> {
       _shopNameController.text = shopData["shopName"] ?? "";
       _addressController.text = shopData["address"] ?? "";
       _selectedPlaceId = shopData["googlePlaceId"];
-
-      List phones = shopData["mobileNumbers"] ?? [];
-      if (phones.isNotEmpty) {
-        _phoneControllers =
-            phones.map((p) => TextEditingController(text: p)).toList();
-      }
 
       _isAlreadyRegistered = true;
     }
@@ -142,10 +135,6 @@ class _ShopRegisterState extends State<ShopRegister> {
     String name = profileSnap.data()?["name"] ?? "Unknown Barber";
     String email = profileSnap.data()?["email"] ?? user.email ?? "";
 
-    List<String> mobileNumbers = _phoneControllers
-        .map((c) => c.text.trim())
-        .where((num) => num.isNotEmpty)
-        .toList();
 
     if (_shopNameController.text.isEmpty || _addressController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -160,7 +149,6 @@ class _ShopRegisterState extends State<ShopRegister> {
       "name": name,
       "email": email,
       "shopName": _shopNameController.text.trim(),
-      "mobileNumbers": mobileNumbers,
       "address": _addressController.text.trim(),
       "googlePlaceId": placeId,
       "createdAt": FieldValue.serverTimestamp(),
@@ -246,27 +234,6 @@ class _ShopRegisterState extends State<ShopRegister> {
                       border: InputBorder.none,
                     ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                const Text("Contact Numbers",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                Column(
-                  children: List.generate(_phoneControllers.length, (index) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: _buildCard(
-                        child: TextField(
-                          controller: _phoneControllers[index],
-                          keyboardType: TextInputType.phone,
-                          enabled: !_isAlreadyRegistered,
-                          decoration: const InputDecoration(
-                            hintText: "Enter phone number",
-                            border: InputBorder.none,
-                          ),
-                        ),
-                      ),
-                    );
-                  }),
                 ),
                 const SizedBox(height: 16),
                 const Text("Address",

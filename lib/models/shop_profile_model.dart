@@ -3,7 +3,6 @@ class ShopProfileDetails {
   final String? shopName;
   final String? address;
   final List<String>? shopPhotos;
-  final String? phoneNumber;
   final String? website;
   final String? about;
   final String? numberofbarber;
@@ -14,9 +13,8 @@ class ShopProfileDetails {
   final String? satSunStart;
   final String? satSunEnd;
 
-  // Contacts
-  final String? primaryContactNumber;
-  final List<String>? additionalContactNumbers;
+  //Barber name  and contact
+  final List<String>? barbers;
 
   // Services
   final List<Map<String, dynamic>>? services;
@@ -26,17 +24,15 @@ class ShopProfileDetails {
     this.shopName,
     this.address,
     this.shopPhotos,
-    this.phoneNumber,
     this.website,
     this.about,
     this.monFriStart,
     this.monFriEnd,
     this.satSunStart,
     this.satSunEnd,
-    this.primaryContactNumber,
-    this.additionalContactNumbers,
     this.services,
-    this.numberofbarber
+    this.numberofbarber,
+    this.barbers,
   });
 
   factory ShopProfileDetails.fromMap(String id, Map<String, dynamic> data) {
@@ -44,7 +40,6 @@ class ShopProfileDetails {
         ownerUid: data['ownerUid'] ?? "",
         shopName: data['shopName'],
         address: data['address'],
-        phoneNumber: data['phoneNumber'],
         website: data['websiteLink'],
         about: data['aboutShop'],
         monFriStart: data['monFriStart'],
@@ -62,11 +57,11 @@ class ShopProfileDetails {
             ?.map((e) => Map<String, dynamic>.from(e as Map))
             .toList(),
 
-        // Contacts
-        primaryContactNumber: data['primaryContactNumber']?.toString(),
-        additionalContactNumbers: (data['additionalContactNumbers'] as List<dynamic>?)
-            ?.map((e) => e.toString()) // ✅ ensures it's always List<String>
-            .toList()
+        barbers: data['barbers'] != null
+          ? List<String>.from(data['barbers'])
+          :null,
+
+
     );
   }
 }

@@ -40,25 +40,36 @@ class _ServicesState extends State<Services> {
       if (doc.exists && doc.data()?['Services'] != null) {
         List<dynamic> saved = doc['Services'];
 
-        Map<String, String> savedMap = {
-          for (var e in saved) e['service'] as String: e['price'] as String
+        /// SAFE MAP (NO CRASH)
+        Map<String, Map<String, String>> savedMap = {
+          for (var e in saved)
+            (e['service'] ?? ""): {
+              "price": (e['price'] ?? "").toString(),
+              "time": (e['time'] ?? "").toString(),
+            }
         };
 
         setState(() {
           serviceList = serviceOptions.map((service) {
-            final price = savedMap[service];
+            final data = savedMap[service];
+            final price = data?['price'] ?? "";
+            final time = data?['time'] ?? "";
+
             return {
               'service': service,
               'controller': TextEditingController(text: price),
+              'controllers': TextEditingController(text: time),
             };
           }).toList();
         });
       } else {
+        /// For new shops — empty controllers
         setState(() {
           serviceList = serviceOptions.map((service) {
             return {
               'service': service,
               'controller': TextEditingController(),
+              'controllers': TextEditingController(),
             };
           }).toList();
         });
@@ -73,11 +84,13 @@ class _ServicesState extends State<Services> {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
+      /// Only save the service if PRICE is filled
       List<Map<String, dynamic>> validServices = serviceList
           .where((e) => e['controller'].text.isNotEmpty)
           .map((e) => {
         'service': e['service'],
         'price': e['controller'].text,
+        'time': e['controllers'].text,
       })
           .toList();
 
@@ -96,7 +109,6 @@ class _ServicesState extends State<Services> {
       print("Error saving services: $e");
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -123,32 +135,10 @@ class _ServicesState extends State<Services> {
                 itemCount: serviceList.length,
                 itemBuilder: (context, index) {
                   final serviceName = serviceList[index]['service'];
-                  final controller = serviceList[index]['controller']
-                  as TextEditingController;
-
-                  IconData serviceIcon;
-                  switch (serviceName) {
-                    case 'Haircut':
-                      serviceIcon = Icons.content_cut;
-                      break;
-                    case 'Shave':
-                      serviceIcon = Icons.face;
-                      break;
-                    case 'Trim':
-                      serviceIcon = Icons.cut;
-                      break;
-                    case 'Facial':
-                      serviceIcon = Icons.spa;
-                      break;
-                    case 'Hair Color':
-                      serviceIcon = Icons.color_lens;
-                      break;
-                    case 'Hair Spa':
-                      serviceIcon = Icons.water_drop;
-                      break;
-                    default:
-                      serviceIcon = Icons.build;
-                  }
+                  final priceController =
+                  serviceList[index]['controller'] as TextEditingController;
+                  final timeController =
+                  serviceList[index]['controllers'] as TextEditingController;
 
                   return Card(
                     elevation: 3,
@@ -159,16 +149,10 @@ class _ServicesState extends State<Services> {
                     ),
                     margin: EdgeInsets.symmetric(vertical: 8.h),
                     child: Padding(
-                      padding:
-                      EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 16.w, vertical: 14.h),
                       child: Row(
                         children: [
-                          CircleAvatar(
-                            backgroundColor: Colors.orange.withOpacity(0.1),
-                            child: Icon(serviceIcon,
-                                color: Colors.orange, size: 24.sp),
-                          ),
-                          SizedBox(width: 16.w),
                           Expanded(
                             child: Text(
                               serviceName,
@@ -179,13 +163,46 @@ class _ServicesState extends State<Services> {
                               ),
                             ),
                           ),
+
+                          /// PRICE FIELD
                           SizedBox(
-                            width: 100.w,
+                            width: 80.w,
                             child: TextFormField(
-                              controller: controller,
+                              controller: priceController,
                               textAlign: TextAlign.center,
                               decoration: InputDecoration(
                                 hintText: "Price",
+                                filled: true,
+                                fillColor: Colors.grey[100],
+                                isDense: true,
+                                contentPadding: EdgeInsets.symmetric(
+                                    vertical: 10.h, horizontal: 12.w),
+                                enabledBorder: OutlineInputBorder(
+                                  borderSide:
+                                  BorderSide(color: Colors.grey.shade300),
+                                  borderRadius: BorderRadius.circular(10.r),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderSide: const BorderSide(
+                                      color: Colors.orange, width: 1.5),
+                                  borderRadius: BorderRadius.circular(10.r),
+                                ),
+                              ),
+                              keyboardType: TextInputType.number,
+                              style: TextStyle(fontSize: 14.sp),
+                            ),
+                          ),
+
+                          SizedBox(width: 12.w),
+
+                          /// TIME FIELD
+                          SizedBox(
+                            width: 80.w,
+                            child: TextFormField(
+                              controller: timeController,
+                              textAlign: TextAlign.center,
+                              decoration: InputDecoration(
+                                hintText: "Time",
                                 filled: true,
                                 fillColor: Colors.grey[100],
                                 isDense: true,
@@ -213,7 +230,10 @@ class _ServicesState extends State<Services> {
                 },
               ),
             ),
+
             SizedBox(height: 12.h),
+
+            /// SUBMIT BUTTON
             SizedBox(
               width: double.infinity,
               height: 50.h,

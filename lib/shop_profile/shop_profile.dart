@@ -5,7 +5,6 @@ import 'package:flutter/rendering.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
-import '../Services.dart';
 import '../booking/book_now_page.dart';
 import '../models/barber_model.dart';
 import '../models/mearge_barber_model.dart';
@@ -401,11 +400,6 @@ class _ShopProfileState extends State<ShopProfile> {
                                 _showServicesBottomSheet(context, mergedBarber!);
                               }
                             }),
-                        _buildServiceCircle(Icons.call, "Call", () {
-                          if (mergedBarber != null) {
-                            _showContactBottomSheet(context, mergedBarber!);
-                          }
-                        }),
                         _buildServiceCircle(Icons.directions, "Direction",
                                 () async {
                               if (barber != null) {
@@ -756,71 +750,4 @@ IconData _getServiceIcon(String serviceName) {
     default:
       return Icons.build;
   }
-}
-
-void _showContactBottomSheet(BuildContext context, MergedBarber mergedBarber) {
-  final primary = mergedBarber.primaryContactNumber;
-  final additional = mergedBarber.additionalContactNumbers ?? [];
-
-  showModalBottomSheet(
-    backgroundColor: Colors.white,
-    context: context,
-    isScrollControlled: true,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-    ),
-    builder: (context) {
-      if ((primary == null || primary.isEmpty) && additional.isEmpty) {
-        return const SizedBox(
-          height: 200,
-          child: Center(child: Text("Contact numbers not available")),
-        );
-      }
-
-      return Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              height: 5,
-              width: 50,
-              margin: const EdgeInsets.only(bottom: 12),
-              decoration: BoxDecoration(
-                color: Colors.grey[400],
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            const Text(
-              "Contact Numbers",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            Flexible(
-              child: ListView(
-                shrinkWrap: true,
-                children: [
-                  if (primary != null && primary.isNotEmpty)
-                    ListTile(
-                      leading: const Icon(Icons.phone, color: Colors.orange),
-                      title: Text(primary),
-                      onTap: () {
-                        launchUrl(Uri.parse("tel:$primary"));
-                      },
-                    ),
-                  ...additional.map((number) => ListTile(
-                    leading: const Icon(Icons.phone, color: Colors.orange),
-                    title: Text(number),
-                    onTap: () {
-                      launchUrl(Uri.parse("tel:$number"));
-                    },
-                  )),
-                ],
-              ),
-            ),
-          ],
-        ),
-      );
-    },
-  );
 }

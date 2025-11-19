@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -25,13 +25,12 @@ class EditShopProfile extends StatefulWidget {
 class _EditShopProfileState extends State<EditShopProfile> {
 
   final TextEditingController _nameController = TextEditingController();
-  final List<TextEditingController> _contactControllers = [
-    TextEditingController()
-  ];
   final TextEditingController _addressController = TextEditingController();
   final TextEditingController _websiteController = TextEditingController();
   final TextEditingController _aboutController = TextEditingController();
   final TextEditingController _numberController = TextEditingController();
+  List<TextEditingController> barberNameControllers = [TextEditingController()];
+  List<TextEditingController> barberNumberControllers = [TextEditingController()];
 
   final FocusNode _aboutFocus = FocusNode();
 
@@ -90,13 +89,11 @@ class _EditShopProfileState extends State<EditShopProfile> {
   @override
   void dispose() {
     _nameController.dispose();
-    for (var controller in _contactControllers) {
-      controller.dispose();
-    }
     _addressController.dispose();
     _websiteController.dispose();
     _aboutController.dispose();
     _aboutFocus.dispose();
+    _numberController.dispose();
     super.dispose();
   }
 
@@ -158,27 +155,6 @@ class _EditShopProfileState extends State<EditShopProfile> {
         _addressController.text = registeredShopData['address'] ?? '';
 
 
-        // Contact numbers from RegisteredShops - try different field names
-        String phoneNumber = registeredShopData['number'] ??
-            registeredShopData['phoneNumber'] ??
-            registeredShopData['contactNumber'] ?? '';
-
-        _contactControllers.clear();
-        if (phoneNumber.isNotEmpty) {
-          _contactControllers.add(TextEditingController(text: phoneNumber));
-        } else {
-          // Try to get from array fields
-          List contactNumbers = registeredShopData['contactNumbers'] ??
-              registeredShopData['mobileNumbers'] ?? [];
-          if (contactNumbers.isNotEmpty) {
-            for (var contact in contactNumbers) {
-              _contactControllers.add(TextEditingController(text: contact.toString()));
-            }
-          } else {
-            _contactControllers.add(TextEditingController());
-          }
-        }
-
         // Additional profile data from ShopProfileDetails (if exists)
         _websiteController.text = profileData['websiteLink'] ?? '';
         _aboutController.text = profileData['aboutShop'] ?? '';
@@ -199,11 +175,23 @@ class _EditShopProfileState extends State<EditShopProfile> {
 
         _shopImages = List<String>.from(profileData['Images'] ?? []);
 
-        // Add any additional contact numbers from profile
-        List additionalContacts = profileData['additionalContactNumbers'] ?? [];
-        for (var contact in additionalContacts) {
-          _contactControllers.add(TextEditingController(text: contact));
+        _numberController.text = profileData['numberofbarber'] ?? '';
+
+        List barbers = profileData['barbers'] ?? [];
+
+        barberNameControllers.clear();
+        barberNumberControllers.clear();
+
+        for (var barber in barbers) {
+          barberNameControllers.add(
+            TextEditingController(text: barber['name']),
+          );
+
+          barberNumberControllers.add(
+            TextEditingController(text: barber['number']),
+          );
         }
+
       });
     } catch (e) {
       debugPrint("Error fetching shop details: $e");
@@ -252,29 +240,24 @@ class _EditShopProfileState extends State<EditShopProfile> {
         return;
       }
 
-      // Collect contacts
-      final contacts = _contactControllers
-          .map((c) => c.text.trim())
-          .where((c) => c.isNotEmpty)
-          .toList();
-
-      if (contacts.isEmpty) {
-        _showSnackBar("Please add at least one contact number", Colors.red);
-        return;
-      }
-
       setState(() => _loading = true);
 
       // Upload any new images added in this session
       final imageUrls = await uploadImagesToImageKit();
+      List<Map<String, dynamic>> barbers = [];
+
+      for (int i = 0; i < barberNameControllers.length; i++) {
+        barbers.add({
+          "name": barberNameControllers[i].text.trim(),
+          "number": barberNumberControllers[i].text.trim(),
+        });
+      }
 
       final profileData = {
         'ownerUid': _currentUid,
         'placeId': widget.placeId,
         'shopName': _nameController.text.trim(),
         'shopAddress': _addressController.text.trim(),
-        'primaryContactNumber': contacts.isNotEmpty ? contacts.first : null,
-        'additionalContactNumbers': contacts.length > 1 ? contacts.sublist(1) : [],
         'websiteLink': _websiteController.text.trim(),
         'aboutShop': _aboutController.text.trim(),
         'numberofbarber': _numberController.text.trim(),
@@ -284,6 +267,7 @@ class _EditShopProfileState extends State<EditShopProfile> {
         'satSunEnd': _satToSunEnd != null ? formatTime(_satToSunEnd) : null,
         // Images field is only for profile gallery images, shopPhotos/specialistPhotos are migrated separately
         'Images': imageUrls,
+        'barbers': barbers,
         'updatedAt': FieldValue.serverTimestamp(),
       };
 
@@ -302,9 +286,7 @@ class _EditShopProfileState extends State<EditShopProfile> {
 
       await batch.commit();
 
-      // ✅ After saving profile, migrate images from RegisteredShops → ShopProfileDetails
-      await _migrateImagesToShopProfileDetails(_currentUid!, widget.placeId, true);  // specialistPhotos
-      await _migrateImagesToShopProfileDetails(_currentUid!, widget.placeId, false); // shopPhotos
+      await _migrateImagesToShopProfileDetails(_currentUid!, widget.placeId); // shopPhotos
 
       setState(() => _loading = false);
 
@@ -413,12 +395,6 @@ class _EditShopProfileState extends State<EditShopProfile> {
               "Shop Name",
               lightGrey,
             ),
-            const SizedBox(height: 10),
-
-            // Contact Numbers (Dynamic)
-            ..._buildContactNumberFields(lightGrey),
-            const SizedBox(height: 10),
-
             // Shop Address
             _buildCardTextField(
               _addressController,
@@ -465,15 +441,66 @@ class _EditShopProfileState extends State<EditShopProfile> {
               mediumGreyBorder,
             ),
             SizedBox(height: 10),
-            _buildPhotoSection("Add Photos", lightGrey, mediumGreyBorder, false),
-            _buildPhotoSection("Add Photos of your Specialists", lightGrey, mediumGreyBorder,true),
+            _buildPhotoSection("Add Photos", lightGrey, mediumGreyBorder),
             const SizedBox(height: 15),
-            Align(alignment: Alignment.centerLeft,
-              child: Text("Enter Number Of Barber",style: TextStyle(fontWeight: FontWeight.bold,fontSize: 16),),),
+
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                "Enter Number Of Barber",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ),
+
             _buildCardTextField(
-                _numberController,
-                "Number of Barber",
-                lightGrey),
+              _numberController,
+              "Number of Barber",
+              lightGrey,
+              keyboardType: TextInputType.number,
+              onChanged: (value) {
+                int count = int.tryParse(value) ?? 0;
+
+                setState(() {
+                  barberNameControllers =
+                      List.generate(count, (index) => TextEditingController());
+                  barberNumberControllers =
+                      List.generate(count, (index) => TextEditingController());
+                });
+              },
+            ),
+
+// 👇 Show dynamic fields
+            if (barberNameControllers.isNotEmpty)
+              Column(
+                children: List.generate(barberNameControllers.length, (index) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("Barber ${index + 1}",
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                        SizedBox(height: 8),
+
+                        _buildCardTextField(
+                          barberNameControllers[index],
+                          "Enter Barber Name",
+                          lightGrey,
+                        ),
+                        SizedBox(height: 8),
+
+                        _buildCardTextField(
+                          barberNumberControllers[index],
+                          "Enter Mobile Number",
+                          lightGrey,
+                          keyboardType: TextInputType.number,
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              ),
+
             const SizedBox(height: 20),
             // Manage Services
             ListTile(
@@ -540,6 +567,8 @@ class _EditShopProfileState extends State<EditShopProfile> {
       Color bgColor, {
         int maxLines = 1,
         FocusNode? focusNode,
+        ValueChanged<String>? onChanged,
+        TextInputType keyboardType = TextInputType.text,
       }) {
     return Card(
       color: bgColor,
@@ -550,6 +579,8 @@ class _EditShopProfileState extends State<EditShopProfile> {
         child: TextField(
           controller: controller,
           focusNode: focusNode,
+          onChanged: onChanged,
+          keyboardType: keyboardType,
           maxLines: maxLines,
           decoration: InputDecoration(
             hintText: hintText,
@@ -558,48 +589,6 @@ class _EditShopProfileState extends State<EditShopProfile> {
         ),
       ),
     );
-  }
-
-  List<Widget> _buildContactNumberFields(Color bgColor) {
-    List<Widget> fields = [];
-    for (int i = 0; i < _contactControllers.length; i++) {
-      fields.add(
-        Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: Row(
-            children: [
-              Expanded(
-                child: _buildCardTextField(
-                  _contactControllers[i],
-                  "Contact Number ${i + 1}",
-                  bgColor,
-                ),
-              ),
-              if (i == _contactControllers.length - 1 && _contactControllers.length < 5)
-                IconButton(
-                  icon: const Icon(Icons.add, color: Colors.orange),
-                  onPressed: () {
-                    setState(() {
-                      _contactControllers.add(TextEditingController());
-                    });
-                  },
-                ),
-              if (_contactControllers.length > 1)
-                IconButton(
-                  icon: const Icon(Icons.remove, color: Colors.red),
-                  onPressed: () {
-                    setState(() {
-                      _contactControllers[i].dispose();
-                      _contactControllers.removeAt(i);
-                    });
-                  },
-                ),
-            ],
-          ),
-        ),
-      );
-    }
-    return fields;
   }
 
   Widget _buildTimeSection(
@@ -661,8 +650,7 @@ class _EditShopProfileState extends State<EditShopProfile> {
     );
   }
 
-  Widget _buildPhotoSection(
-      String title, Color bgColor, Color borderColor, bool isSpecialist) {
+  Widget _buildPhotoSection(String title, Color bgColor, Color borderColor) {
     final uid = FirebaseAuth.instance.currentUser?.uid;
 
     return Column(
@@ -672,208 +660,178 @@ class _EditShopProfileState extends State<EditShopProfile> {
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         const SizedBox(height: 10),
 
-        /// ✅ Listen to both ShopProfileDetails and RegisteredShops
+        /// ✅ Single Stream: Only ShopProfileDetails
         StreamBuilder<DocumentSnapshot>(
           stream: FirebaseFirestore.instance
               .collection('ShopProfileDetails')
               .doc(uid)
               .snapshots(),
           builder: (context, snapshot) {
-            final shopDetailsExists = snapshot.hasData && snapshot.data!.exists;
-            final shopDetailsData =
+            final exists = snapshot.hasData && snapshot.data!.exists;
+
+            if (!exists) {
+              return const Text(
+                "No images found",
+                style: TextStyle(color: Colors.grey),
+              );
+            }
+
+            final data =
                 snapshot.data?.data() as Map<String, dynamic>? ?? {};
 
-            return StreamBuilder<DocumentSnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('RegisteredShops')
-                  .doc(uid)
-                  .snapshots(),
-              builder: (context, regSnap) {
-                final registeredData =
-                    regSnap.data?.data() as Map<String, dynamic>? ?? {};
+            final images = List<String>.from(data['shopPhotos'] ?? []);
+            final placeId = data['placeId'] ?? "";
 
-                // ✅ Use ShopProfileDetails images if doc exists, else fallback to RegisteredShops
-                final images = List<String>.from(
-                  shopDetailsExists
-                      ? shopDetailsData[isSpecialist
-                      ? 'specialistPhotos'
-                      : 'shopPhotos'] ??
-                      []
-                      : registeredData[isSpecialist
-                      ? 'specialistPhotos'
-                      : 'shopPhotos'] ??
-                      [],
-                );
+            return SizedBox(
+              height: 110,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: images.length + 1,
+                itemBuilder: (context, index) {
+                  if (index == images.length) {
+                    // ➕ Add Photo Button
+                    return GestureDetector(
+                      onTap: () async {
+                        final picked = await _picker.pickImage(
+                            source: ImageSource.gallery);
 
-                final placeId = shopDetailsData['placeId'] ?? "";
+                        if (picked != null) {
+                          File file = File(picked.path);
 
-                return SizedBox(
-                  height: 110,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: images.length + 1,
-                    itemBuilder: (context, index) {
-                      if (index == images.length) {
-                        // ➕ Add new photo container
-                        return GestureDetector(
-                          onTap: () async {
-                            final picked =
-                            await _picker.pickImage(source: ImageSource.gallery);
-                            if (picked != null) {
-                              File file = File(picked.path);
-                              var request = http.MultipartRequest(
-                                  'POST', Uri.parse(imageKitUploadUrl));
-                              request.headers['Authorization'] =
-                              'Basic ${base64Encode(utf8.encode('$imageKitPrivateKey:'))}';
-                              request.fields['fileName'] =
-                                  file.path.split('/').last;
-                              request.fields['useUniqueFileName'] = 'true';
-                              request.files.add(await http.MultipartFile.fromPath(
-                                  'file', file.path));
+                          var request = http.MultipartRequest(
+                              'POST', Uri.parse(imageKitUploadUrl));
 
-                              try {
-                                final response = await request.send();
-                                final responseData =
-                                await response.stream.bytesToString();
-                                final decoded = json.decode(responseData);
+                          request.headers['Authorization'] =
+                          'Basic ${base64Encode(
+                            utf8.encode('$imageKitPrivateKey:'),
+                          )}';
 
-                                if (response.statusCode == 200) {
-                                  final newUrl = decoded['url'];
-                                  final fieldName = isSpecialist
-                                      ? 'specialistPhotos'
-                                      : 'shopPhotos';
+                          request.fields['fileName'] =
+                              file.path.split('/').last;
+                          request.fields['useUniqueFileName'] = 'true';
 
-                                  final updateData = {
-                                    fieldName: FieldValue.arrayUnion([newUrl]),
-                                  };
+                          request.files.add(await http.MultipartFile.fromPath(
+                            'file',
+                            file.path,
+                          ));
 
-                                  if (shopDetailsExists) {
-                                    // ✅ Save under ShopProfileDetails
-                                    await FirebaseFirestore.instance
-                                        .collection('ShopProfileDetails')
-                                        .doc(uid)
-                                        .set(updateData, SetOptions(merge: true));
+                          try {
+                            final response = await request.send();
+                            final responseData =
+                            await response.stream.bytesToString();
+                            final decoded = json.decode(responseData);
 
-                                    if (placeId.isNotEmpty) {
-                                      await FirebaseFirestore.instance
-                                          .collection('ShopProfileDetails')
-                                          .doc(placeId)
-                                          .set(updateData, SetOptions(merge: true));
-                                    }
-                                  } else {
-                                    // ✅ Save under RegisteredShops if profile not built yet
-                                    await FirebaseFirestore.instance
-                                        .collection('RegisteredShops')
-                                        .doc(uid)
-                                        .set(updateData, SetOptions(merge: true));
-                                  }
-                                }
-                              } catch (e) {
-                                debugPrint("Upload error: $e");
+                            if (response.statusCode == 200) {
+                              final newUrl = decoded['url'];
+
+                              final updateData = {
+                                'shopPhotos': FieldValue.arrayUnion([newUrl]),
+                              };
+
+                              /// Save in ShopProfileDetails
+                              await FirebaseFirestore.instance
+                                  .collection('ShopProfileDetails')
+                                  .doc(uid)
+                                  .set(updateData, SetOptions(merge: true));
+
+                              /// Also update placeId doc if exists
+                              if (placeId.isNotEmpty) {
+                                await FirebaseFirestore.instance
+                                    .collection('ShopProfileDetails')
+                                    .doc(placeId)
+                                    .set(updateData, SetOptions(merge: true));
                               }
                             }
-                          },
-                          child: Container(
-                            width: 100,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              border: Border.all(color: borderColor),
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.05),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
-                                )
-                              ],
-                            ),
-                            child: const Center(
-                              child: Icon(Icons.add_a_photo,
-                                  color: Colors.orange, size: 28),
-                            ),
-                          ),
-                        );
-                      }
-
-                      // 🖼 Existing uploaded image with ❌ remove button
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 12),
-                        child: Stack(
-                          children: [
-                            Container(
-                              width: 100,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(16),
-                                image: DecorationImage(
-                                  image: NetworkImage(images[index]),
-                                  fit: BoxFit.cover,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.05),
-                                    blurRadius: 4,
-                                    offset: const Offset(0, 2),
-                                  )
-                                ],
-                              ),
-                            ),
-                            Positioned(
-                              top: 4,
-                              right: 4,
-                              child: GestureDetector(
-                                onTap: () async {
-                                  final fieldName = isSpecialist
-                                      ? 'specialistPhotos'
-                                      : 'shopPhotos';
-
-                                  if (shopDetailsExists) {
-                                    // remove from ShopProfileDetails
-                                    await FirebaseFirestore.instance
-                                        .collection('ShopProfileDetails')
-                                        .doc(uid)
-                                        .update({
-                                      fieldName:
-                                      FieldValue.arrayRemove([images[index]])
-                                    });
-
-                                    if (placeId.isNotEmpty) {
-                                      await FirebaseFirestore.instance
-                                          .collection('ShopProfileDetails')
-                                          .doc(placeId)
-                                          .update({
-                                        fieldName: FieldValue.arrayRemove(
-                                            [images[index]])
-                                      });
-                                    }
-                                  } else {
-                                    // remove from RegisteredShops
-                                    await FirebaseFirestore.instance
-                                        .collection('RegisteredShops')
-                                        .doc(uid)
-                                        .update({
-                                      fieldName:
-                                      FieldValue.arrayRemove([images[index]])
-                                    });
-                                  }
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.all(4),
-                                  decoration: const BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Colors.black54,
-                                  ),
-                                  child: const Icon(Icons.close,
-                                      size: 16, color: Colors.white),
-                                ),
-                              ),
-                            ),
+                          } catch (e) {
+                            debugPrint("Upload Error: $e");
+                          }
+                        }
+                      },
+                      child: Container(
+                        width: 100,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border.all(color: borderColor),
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            )
                           ],
                         ),
-                      );
-                    },
-                  ),
-                );
-              },
+                        child: const Center(
+                          child: Icon(Icons.add_a_photo,
+                              color: Colors.orange, size: 28),
+                        ),
+                      ),
+                    );
+                  }
+
+                  // 🖼 Existing uploaded image with ❌ remove icon
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: Stack(
+                      children: [
+                        Container(
+                          width: 100,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            image: DecorationImage(
+                              image: NetworkImage(images[index]),
+                              fit: BoxFit.cover,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              )
+                            ],
+                          ),
+                        ),
+                        Positioned(
+                          top: 4,
+                          right: 4,
+                          child: GestureDetector(
+                            onTap: () async {
+                              // Remove from ShopProfileDetails
+                              await FirebaseFirestore.instance
+                                  .collection('ShopProfileDetails')
+                                  .doc(uid)
+                                  .update({
+                                'shopPhotos':
+                                FieldValue.arrayRemove([images[index]]),
+                              });
+
+                              // Also remove from placeId doc if exists
+                              if (placeId.isNotEmpty) {
+                                await FirebaseFirestore.instance
+                                    .collection('ShopProfileDetails')
+                                    .doc(placeId)
+                                    .update({
+                                  'shopPhotos':
+                                  FieldValue.arrayRemove([images[index]]),
+                                });
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.black54,
+                              ),
+                              child: const Icon(Icons.close,
+                                  size: 16, color: Colors.white),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
             );
           },
         ),
@@ -881,7 +839,8 @@ class _EditShopProfileState extends State<EditShopProfile> {
     );
   }
 
-  Future<void> _migrateImagesToShopProfileDetails(String uid, String placeId, bool isSpecialist) async {
+
+  Future<void> _migrateImagesToShopProfileDetails(String uid, String placeId) async {
     final regDoc = await FirebaseFirestore.instance
         .collection('RegisteredShops')
         .doc(uid)
@@ -889,7 +848,7 @@ class _EditShopProfileState extends State<EditShopProfile> {
 
     if (regDoc.exists) {
       final registeredData = regDoc.data() ?? {};
-      final fieldName = isSpecialist ? 'specialistPhotos' : 'shopPhotos';
+      final fieldName = 'shopPhotos';
       final images = List<String>.from(registeredData[fieldName] ?? []);
 
       if (images.isNotEmpty) {

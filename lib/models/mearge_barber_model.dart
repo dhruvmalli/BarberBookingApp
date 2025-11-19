@@ -24,9 +24,9 @@ class MergedBarber {
   final String? satSunEnd;
   final String? primaryContactNumber;
   final List<Map<String, dynamic>>? services;
-  final List<String>? additionalContactNumbers;
   final String? ownerUid;
-  final String? numberofbarber;// ✅ change here
+  final String? numberofbarber;
+  final List<String>? barbers;
 
   MergedBarber({
     required this.placeId,
@@ -48,9 +48,9 @@ class MergedBarber {
     this.satSunEnd,
     this.services,
     this.primaryContactNumber,
-    this.additionalContactNumbers,
     this.ownerUid,
-    this.numberofbarber
+    this.numberofbarber,
+    this.barbers,
   });
 
   /// Merge Google + Firebase
@@ -69,15 +69,13 @@ class MergedBarber {
       ownerUid: fb?.ownerUid,
       shopPhotos: fb?.shopPhotos,
       website: fb?.website,
-      phone: fb?.phoneNumber,
       monFriStart: fb?.monFriStart,
       monFriEnd: fb?.monFriEnd,
       satSunStart: fb?.satSunStart,
       satSunEnd: fb?.satSunEnd,
       services: fb?.services,
-      primaryContactNumber: fb?.primaryContactNumber,
-      additionalContactNumbers: fb?.additionalContactNumbers,
-      numberofbarber: fb?.numberofbarber,// ✅ now List<String>
+      numberofbarber: fb?.numberofbarber,
+      barbers: fb?.barbers,// ✅ now List<String>
     );
   }
 }
