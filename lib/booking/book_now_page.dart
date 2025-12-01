@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
 import '../models/mearge_barber_model.dart';
 import '../providers/booking_provider.dart';
 import 'review_summary.dart';

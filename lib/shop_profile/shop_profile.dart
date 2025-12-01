@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
@@ -61,15 +62,17 @@ class _ShopProfileState extends State<ShopProfile> {
       final apiBarber = await GooglePlacesService()
           .getPlaceDetails(widget.barberData!.placeId);
 
+      final placeId = widget.barberData!.placeId;
+
       final doc = await FirebaseFirestore.instance
           .collection("ShopProfileDetails")
-          .doc(widget.barberData!.placeId)
+          .doc(placeId)
           .get();
 
       ShopProfileDetails? firebaseProfile;
       if (doc.exists) {
-        firebaseProfile =
-            ShopProfileDetails.fromMap(doc.id, doc.data() as Map<String, dynamic>);
+        firebaseProfile = ShopProfileDetails.fromMap(
+            doc.id, doc.data() as Map<String, dynamic>);
       }
 
       setState(() {
@@ -106,8 +109,6 @@ class _ShopProfileState extends State<ShopProfile> {
       print("Error opening maps: $e");
     }
   }
-
-  // ---------------- HELPER WIDGETS ---------------- //
 
   Widget _buildImageCard(String imageUrl) {
     return ClipRRect(
@@ -215,8 +216,6 @@ class _ShopProfileState extends State<ShopProfile> {
       ),
     );
   }
-
-  // ---------------- MAIN BUILD ---------------- //
 
   @override
   Widget build(BuildContext context) {
@@ -349,8 +348,8 @@ class _ShopProfileState extends State<ShopProfile> {
                         const SizedBox(width: 8),
                         Text(
                           "${barber?.rating ?? 5.0}",
-                          style: TextStyle(
-                              fontSize: 14, color: Colors.grey[500]),
+                          style:
+                          TextStyle(fontSize: 14, color: Colors.grey[500]),
                         ),
                         const Spacer(),
                         if (barber != null)
@@ -382,24 +381,30 @@ class _ShopProfileState extends State<ShopProfile> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _buildServiceCircle(Icons.language, "Website", () async {
-                          if (mergedBarber?.website != null &&
-                              mergedBarber!.website!.isNotEmpty) {
-                            final Uri url = Uri.parse(
-                              mergedBarber!.website!.startsWith("http")
-                                  ? mergedBarber!.website!
-                                  : "https://${mergedBarber!.website!}",
-                            );
-                            await launchUrl(url,
-                                mode: LaunchMode.externalApplication);
-                          }
-                        }),
+                        _buildServiceCircle(Icons.language, "Website",
+                                () async {
+                              if (mergedBarber?.website != null &&
+                                  mergedBarber!.website!.isNotEmpty) {
+                                final Uri url = Uri.parse(
+                                  mergedBarber!.website!.startsWith("http")
+                                      ? mergedBarber!.website!
+                                      : "https://${mergedBarber!.website!}",
+                                );
+                                await launchUrl(url,
+                                    mode: LaunchMode.externalApplication);
+                              }
+                            }),
                         _buildServiceCircle(Icons.design_services, "Services",
                                 () {
                               if (mergedBarber != null) {
                                 _showServicesBottomSheet(context, mergedBarber!);
                               }
                             }),
+                        _buildServiceCircle(Icons.call, "Call", () {
+                          if (mergedBarber != null) {
+                            _showContactBottomSheet(context, mergedBarber!);
+                          }
+                        }),
                         _buildServiceCircle(Icons.directions, "Direction",
                                 () async {
                               if (barber != null) {
@@ -510,43 +515,6 @@ class _ShopProfileState extends State<ShopProfile> {
                       ],
                     ),
                   ),
-
-                  // Specialists
-                  Padding(
-                    padding:
-                    const EdgeInsets.only(top: 16, right: 12, left: 12),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          "Our Specialists",
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  SizedBox(
-                    height: 140,
-                    child: ListView(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      children: [
-                        _buildSpecialistCard("assets/images/image1.jpg",
-                            "John Doe", "Sr. Barber"),
-                        _buildSpecialistCard("assets/images/image3.jpg",
-                            "Mike Trim", "Sr. Barber"),
-                        _buildSpecialistCard("assets/images/image2.jpg",
-                            "Alex Fade", "Jr. Barber"),
-                        _buildSpecialistCard("assets/images/image1.jpg",
-                            "Alex Fade", "Jr. Barber"),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 120),
                 ],
               ),
             ),
@@ -567,59 +535,55 @@ class _ShopProfileState extends State<ShopProfile> {
                 ),
               ),
               child: SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: _isRegistered == null
-                    ? const Center(child: CircularProgressIndicator())
-                    : _isRegistered == true
-                    ? ElevatedButton(
-                  onPressed: () {
-                    if (mergedBarber != null) {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) =>
-                                BookNowPage(barber: mergedBarber!)),
-                      );
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
-                  ),
-                  child: const Text(
-                    "Book Now",
-                    style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white),
-                  ),
-                )
-                    : Container(
-                  decoration: BoxDecoration(
-                    color: Colors.orange,
-                    borderRadius: BorderRadius.circular(16)
-                  ),
-                    child: Center(
-                      child: Text(
-                        "Not Registered",
-                        style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white),
-                      ),
-                    )
+                  width: double.infinity,
+                  height: 50,
+                  child: _isRegistered == null
+                      ? const Center(child: CircularProgressIndicator())
+                      : _isRegistered == true
+                      ? ElevatedButton(
+                    onPressed: () {
+                      if (mergedBarber != null) {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) =>
+                                  BookNowPage(barber: mergedBarber!)),
+                        );
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16)),
+                    ),
+                    child: const Text(
+                      "Book Now",
+                      style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white),
+                    ),
                   )
-                ),
-              ),
+                      : Container(
+                      decoration: BoxDecoration(
+                          color: Colors.orange,
+                          borderRadius: BorderRadius.circular(16)),
+                      child: Center(
+                        child: Text(
+                          "Not Registered",
+                          style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white),
+                        ),
+                      ))),
             ),
+          ),
         ],
       ),
     );
   }
 }
-
 
 class GooglePlacesService {
   final String apiKey = "AIzaSyDG_h6XHM6HpvXkUsHT_PhmxacLuK57CAg";
@@ -658,7 +622,7 @@ class GooglePlacesService {
 }
 
 void _showServicesBottomSheet(BuildContext context, MergedBarber mergedBarber) {
-  final services = mergedBarber.services; // Assuming services is available in MergedBarber
+  final services = mergedBarber.services; // List<Map<String,dynamic>>?
 
   showModalBottomSheet(
     backgroundColor: Colors.white,
@@ -702,6 +666,7 @@ void _showServicesBottomSheet(BuildContext context, MergedBarber mergedBarber) {
                   final service = services[index];
                   final name = service["service"] ?? "Service not available";
                   final price = service["price"] ?? "N/A";
+                  final time = service["time"] ?? "N/A";
 
                   return Card(
                     shape: RoundedRectangleBorder(
@@ -714,13 +679,26 @@ void _showServicesBottomSheet(BuildContext context, MergedBarber mergedBarber) {
                         name,
                         style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
-                      trailing: Text(
-                        "₹$price",
-                        style: const TextStyle(
-                          color: Colors.orange,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            "price: ₹$price",
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14
+                            ),
+                          ),
+                          SizedBox(width: 10.w),
+                          Text(
+                            "time: $time",
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14
+                            ),
+                          ),
+                        ],
+                      )
                     ),
                   );
                 },
@@ -732,6 +710,7 @@ void _showServicesBottomSheet(BuildContext context, MergedBarber mergedBarber) {
     },
   );
 }
+
 
 IconData _getServiceIcon(String serviceName) {
   switch (serviceName) {
@@ -751,3 +730,72 @@ IconData _getServiceIcon(String serviceName) {
       return Icons.build;
   }
 }
+
+void _showContactBottomSheet(BuildContext context, MergedBarber mergedBarber) {
+  final barbers = mergedBarber.barbers; // List<Map<String, dynamic>>
+
+  showModalBottomSheet(
+    backgroundColor: Colors.white,
+    context: context,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (context) {
+      if (barbers == null || barbers.isEmpty) {
+        return const SizedBox(
+          height: 200,
+          child: Center(child: Text("Contact numbers not available")),
+        );
+      }
+
+      return Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              height: 5,
+              width: 50,
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: Colors.grey[400],
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            const Text(
+              "Contact Barbers",
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+
+            // 🔥 List of all barbers (name + number)
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: barbers.length,
+              itemBuilder: (context, index) {
+                final barber = barbers[index];
+                final name = barber["name"] ?? "Unknown";
+                final number = barber["number"] ?? "";
+
+                return ListTile(
+                  leading: const Icon(Icons.person, color: Colors.orange),
+                  title: Text(name),
+                  subtitle: Text(number),
+                  trailing: const Icon(Icons.phone, color: Colors.black),
+                  onTap: () {
+                    if (number.isNotEmpty) {
+                      launchUrl(Uri.parse("tel:$number"));
+                    }
+                  },
+                );
+              },
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+

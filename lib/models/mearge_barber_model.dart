@@ -22,11 +22,10 @@ class MergedBarber {
   final String? monFriEnd;
   final String? satSunStart;
   final String? satSunEnd;
-  final String? primaryContactNumber;
   final List<Map<String, dynamic>>? services;
   final String? ownerUid;
   final String? numberofbarber;
-  final List<String>? barbers;
+  final List<Map<String, dynamic>>? barbers;
 
   MergedBarber({
     required this.placeId,
@@ -47,7 +46,6 @@ class MergedBarber {
     this.satSunStart,
     this.satSunEnd,
     this.services,
-    this.primaryContactNumber,
     this.ownerUid,
     this.numberofbarber,
     this.barbers,
@@ -75,7 +73,7 @@ class MergedBarber {
       satSunEnd: fb?.satSunEnd,
       services: fb?.services,
       numberofbarber: fb?.numberofbarber,
-      barbers: fb?.barbers,// ✅ now List<String>
+      barbers: fb!.barbers,// ✅ now List<String>
     );
   }
 }

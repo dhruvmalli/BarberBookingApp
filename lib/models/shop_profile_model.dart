@@ -14,7 +14,7 @@ class ShopProfileDetails {
   final String? satSunEnd;
 
   //Barber name  and contact
-  final List<String>? barbers;
+  final List<Map<String, dynamic>>? barbers;
 
   // Services
   final List<Map<String, dynamic>>? services;
@@ -57,9 +57,9 @@ class ShopProfileDetails {
             ?.map((e) => Map<String, dynamic>.from(e as Map))
             .toList(),
 
-        barbers: data['barbers'] != null
-          ? List<String>.from(data['barbers'])
-          :null,
+        barbers: (data['barbers'] as List<dynamic>?)
+          ?.map((e) => Map<String, dynamic>.from(e as Map))
+          .toList(),
 
 
     );

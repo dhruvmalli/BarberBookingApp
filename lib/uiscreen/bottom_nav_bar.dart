@@ -5,7 +5,6 @@ import '../shop_profile/shop_profile.dart';
 import 'liked_shops.dart';
 import 'location_and_barber_shop.dart';
 import 'main_home_page.dart';
-import 'my_booking_page.dart';
 import 'settings.dart';
 
 class BottomNavBar extends StatefulWidget {
