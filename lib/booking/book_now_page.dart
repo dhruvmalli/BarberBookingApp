@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
@@ -19,11 +20,13 @@ class BookNowPage extends StatefulWidget {
 
 class _BookNowPageState extends State<BookNowPage> {
   late List<Map<String, dynamic>> services;
+  late List<Map<String, dynamic>> barbersname;
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
   int selectedTimeIndex = -1;
   List<String> timeSlots = [];
   Set<String> bookedSlots = {}; // Already booked slots
+  Map<String, dynamic>? selectedBarber;
 
   late String? monFriStart;
   late String? monFriEnd;
@@ -61,14 +64,29 @@ class _BookNowPageState extends State<BookNowPage> {
     // Initialize services
     final rawServices = widget.barber.services ?? [];
     services = rawServices.map((s) {
-      final serviceName = s["service"] ?? "";
+      final serviceName = s["service"]?.toString() ?? "";
+      final priceValue = s["price"]?.toString() ?? "0";
+      final timeValue = s["time"]?.toString() ?? "0";
+
       return {
         "name": serviceName,
-        "price": int.tryParse(s["price"]?.toString() ?? "0") ?? 0,
+        "price": int.tryParse(priceValue) ?? 0,
+        "time": timeValue,           // <--- FIXED HERE
         "selected": false,
         "image": _mapServiceToImage(serviceName),
       };
     }).toList();
+
+    final rawBarber = widget.barber.barbers ?? [];
+    barbersname = rawBarber.map((q) {
+      final barberName = q["name"]?.toString() ?? "";
+      final barberPhoneNumber = q["number"]?.toString() ?? "";
+
+      return{
+        "name": barberName,
+        "number": barberPhoneNumber
+      };
+    }).cast<Map<String, dynamic>>().toList();
 
     // Working hours
     monFriStart = widget.barber.monFriStart;
@@ -87,44 +105,71 @@ class _BookNowPageState extends State<BookNowPage> {
     return TimeOfDay.fromDateTime(dt);
   }
 
+  int _extractMinutes(String value) {
+    final match = RegExp(r'\d+').firstMatch(value);
+    if (match != null) {
+      return int.parse(match.group(0)!);
+    }
+    return 0;
+  }
+
+  int _getTotalServiceMinutes() {
+    int total = 0;
+
+    for (var s in services.where((e) => e["selected"] == true)) {
+      final minutes = _extractMinutes(s["time"].toString());
+      debugPrint("Service time: ${s["time"]} → $minutes");
+      total += minutes;
+    }
+
+    debugPrint("Total minutes: $total");
+    return total;
+  }
+
   /// Fetch already booked slots for the selected barber & date
   Future<void> _fetchBookedSlots(DateTime day) async {
+    if (selectedBarber == null) return;
+
     try {
       final snapshot = await FirebaseFirestore.instance
           .collection("BookedSlots")
           .doc(widget.barber.ownerUid)
           .get();
 
-      if (snapshot.exists) {
-        final data = snapshot.data() as Map<String, dynamic>;
-        final bookings = List.from(data['bookings'] ?? []);
-
-        final dateStr = DateFormat('yyyy-MM-dd').format(day);
-
-        final booked = bookings
-            .where((b) => b['date'] == dateStr)
-            .map<String>((b) => b['slot'] as String)
-            .toSet();
-
-        setState(() {
-          bookedSlots = booked;
-        });
-      } else {
+      if (!snapshot.exists) {
         setState(() => bookedSlots = {});
+        return;
       }
+
+      final data = snapshot.data() as Map<String, dynamic>;
+      final bookings = List<Map<String, dynamic>>.from(data['bookings'] ?? []);
+
+      final dateStr = DateFormat('yyyy-MM-dd').format(day);
+
+      final Set<String> blocked = {};
+
+      for (var booking in bookings) {
+        if (booking['date'] == dateStr &&
+            booking['barbername'] == selectedBarber!["name"]) {
+          blocked.add(booking['slot']);
+        }
+      }
+
+      setState(() {
+        bookedSlots = blocked;
+      });
+
+      debugPrint("🚫 Booked slots: $bookedSlots");
+
     } catch (e) {
-      debugPrint("Error fetching booked slots: $e");
+      debugPrint("❌ Error fetching booked slots: $e");
     }
   }
 
-  void _generateTimeSlots(DateTime day) {
-    List<String> slots = [];
+  Future<void> _generateTimeSlots(DateTime day) async {
+    final totalMinutes = _getTotalServiceMinutes();
 
-    bool isWeekend = (day.weekday == DateTime.saturday || day.weekday == DateTime.sunday);
-    String? startStr = isWeekend ? satSunStart : monFriStart;
-    String? endStr = isWeekend ? satSunEnd : monFriEnd;
-
-    if (startStr == null || endStr == null) {
+    if (selectedBarber == null || totalMinutes == 0) {
       setState(() {
         timeSlots = [];
         selectedTimeIndex = -1;
@@ -132,48 +177,63 @@ class _BookNowPageState extends State<BookNowPage> {
       return;
     }
 
+    await _fetchBookedSlots(day); // 👈 fetch first
+
+    List<String> slots = [];
+
+    bool isWeekend =
+        day.weekday == DateTime.saturday || day.weekday == DateTime.sunday;
+
+    String? startStr = isWeekend ? satSunStart : monFriStart;
+    String? endStr = isWeekend ? satSunEnd : monFriEnd;
+    if (startStr == null || endStr == null) return;
+
     TimeOfDay start = _parseTime(startStr);
     TimeOfDay end = _parseTime(endStr);
 
+    DateTime startDateTime =
+    DateTime(day.year, day.month, day.day, start.hour, start.minute);
+
+    DateTime endDateTime =
+    DateTime(day.year, day.month, day.day, end.hour, end.minute);
+
     DateTime now = DateTime.now();
-    DateTime startDateTime = DateTime(day.year, day.month, day.day, start.hour, start.minute);
-    DateTime endDateTime = DateTime(day.year, day.month, day.day, end.hour, end.minute);
+    DateTime slotStart = startDateTime;
 
-    DateTime slot = startDateTime;
-
-    while (slot.isBefore(endDateTime)) {
-      DateTime slotEnd = slot.add(const Duration(hours: 1));
+    while (true) {
+      DateTime slotEnd = slotStart.add(Duration(minutes: totalMinutes));
       if (slotEnd.isAfter(endDateTime)) break;
 
-      if (day.year == now.year && day.month == now.month && day.day == now.day) {
-        if (slot.isAfter(now)) {
-          slots.add("${DateFormat.jm().format(slot)} - ${DateFormat.jm().format(slotEnd)}");
-        }
-      } else {
-        slots.add("${DateFormat.jm().format(slot)} - ${DateFormat.jm().format(slotEnd)}");
+      if (isSameDay(day, now) && slotStart.isBefore(now)) {
+        slotStart = slotEnd;
+        continue;
       }
 
-      slot = slotEnd;
+      final slot =
+          "${DateFormat.jm().format(slotStart)} - ${DateFormat.jm().format(slotEnd)}";
+
+      slots.add(slot);
+      slotStart = slotEnd;
     }
 
     setState(() {
       timeSlots = slots;
       selectedTimeIndex = -1;
     });
-
-    _fetchBookedSlots(day);
   }
 
-  void _proceedToReview() {
-    final selectedServices = services
+  Future<void> _updateSelectedServices() async {
+    final selected = services
         .where((s) => s["selected"] == true)
         .map((s) => {
       "name": s["name"],
       "price": s["price"],
-    })
-        .toList();
+      "time": s["time"],
+    }).toList();
 
-    if (selectedServices.isEmpty) {
+
+
+    if (selected.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Please select at least one service"),
@@ -205,8 +265,9 @@ class _BookNowPageState extends State<BookNowPage> {
     }
 
     final provider = context.read<BookingProvider>();
-    provider.setSelectedServices(selectedServices);
+    provider.setSelectedServices(selected);
     provider.setDateTime(_selectedDay!, selectedSlot);
+    provider.setSelectedBarberId(selectedBarber!["name"]);
 
     Navigator.pushReplacement(
       context,
@@ -290,7 +351,15 @@ class _BookNowPageState extends State<BookNowPage> {
                                           "₹${service["price"]}",
                                           style: TextStyle(
                                             fontSize: 14.sp,
-                                            color: Colors.orange,
+                                            color: Colors.black87,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                        Text(
+                                          "${service["time"]}",
+                                          style: TextStyle(
+                                            fontSize: 14.sp,
+                                            color: Colors.black87,
                                             fontWeight: FontWeight.w500,
                                           ),
                                         ),
@@ -307,6 +376,10 @@ class _BookNowPageState extends State<BookNowPage> {
                                       setState(() {
                                         service["selected"] = value ?? false;
                                       });
+
+                                      if (_selectedDay != null) {
+                                        _generateTimeSlots(_selectedDay!);
+                                      }
                                     },
                                   ),
                                 ],
@@ -339,7 +412,6 @@ class _BookNowPageState extends State<BookNowPage> {
                           _selectedDay = selectedDay;
                           _focusedDay = focusedDay;
                         });
-                        _generateTimeSlots(selectedDay);
                       },
                       calendarStyle: CalendarStyle(
                         todayDecoration: BoxDecoration(
@@ -363,20 +435,72 @@ class _BookNowPageState extends State<BookNowPage> {
                   // TIME SLOTS
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-                    child: Text(
-                      "Select Time Slot",
-                      style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Select Barber",
+                          style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
+                        ),
+                        SizedBox(height: 8.h),
+                        Wrap(
+                          spacing: 10.w,
+                          runSpacing: 10.h,
+                          children: barbersname.map((barber) {
+                            final isSelected = selectedBarber?["name"] == barber["name"];
+
+                            return ElevatedButton(
+                              onPressed: () {
+                                setState(() {
+                                  selectedBarber = barber;
+                                });
+
+                                // regenerate slots only if date exists
+                                if (_selectedDay != null) {
+                                  _generateTimeSlots(_selectedDay!);
+                                }
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor:
+                                isSelected ? Colors.orange : Colors.orange.shade100,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: Column(
+                                children: [
+                                  Text(
+                                    barber["name"].toString(),
+                                    style: TextStyle(
+                                      color: isSelected ? Colors.white : Colors.black,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    barber["number"].toString(),
+                                    style: TextStyle(
+                                      color: isSelected ? Colors.white : Colors.black,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            );
+                          }).toList(),
+                        ),
+                      ],
                     ),
                   ),
+
                   if (timeSlots.isEmpty)
                     Padding(
                       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
                       child: Text(
                         "No slots available for this day.",
                         style: TextStyle(
-                          fontSize: 14.sp,
+                          fontSize: 16.sp,
                           fontWeight: FontWeight.w500,
-                          color: Colors.redAccent,
+                          color: Colors.black,
                         ),
                       ),
                     )
@@ -465,7 +589,7 @@ class _BookNowPageState extends State<BookNowPage> {
                   ),
                   padding: EdgeInsets.symmetric(vertical: 14.h),
                 ),
-                onPressed: _proceedToReview,
+                onPressed: _updateSelectedServices,
                 child: Text(
                   "Apply",
                   style: TextStyle(

@@ -1,13 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:project_sem7/Notification%20Services/NotificationServicesCustomer.dart';
+import 'package:project_sem7/Notification%20Services/NotificationServicesOwner.dart';
 import 'package:project_sem7/models/shop_profile_model.dart';
 import 'package:project_sem7/uiscreen/main_home_page.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import 'package:project_sem7/models/mearge_barber_model.dart';
 import '../providers/booking_provider.dart';
-import '../shop_profile/shop_profile.dart';
 import '../widgets/bottom_action_button.dart';
 
 class ReviewSummary extends StatefulWidget {
@@ -18,11 +18,22 @@ class ReviewSummary extends StatefulWidget {
 }
 
 class _ReviewSummaryState extends State<ReviewSummary> {
+  Notificationservicescustomer notificationservicescustomer = Notificationservicescustomer();
   bool _isLoading = false;
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    notificationservicescustomer.firebaseInit(context);
+    notificationservicescustomer.setupInteractMessage(context);
+  }
 
   Future<void> _confirmBooking() async {
     final provider = context.read<BookingProvider>();
     final user = FirebaseAuth.instance.currentUser;
+    notificationservicescustomer.getDeviceToken().then((value){
+
+    });
 
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -55,6 +66,7 @@ class _ReviewSummaryState extends State<ReviewSummary> {
         "name": userData['name'] ?? "No Name",
         "email": userData['email'] ?? user.email ?? "No Email",
         "mobile": userData['mobile'] ?? "No Phone",
+        "deviceToken": userData['deviceToken'] ?? "No Device Token"
       };
 
       // 👇 Create allowedUserIds with both customer & barber
@@ -107,7 +119,6 @@ class _ReviewSummaryState extends State<ReviewSummary> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Booking confirmed successfully!"),
-          backgroundColor: Colors.green,
         ),
       );
 
@@ -117,7 +128,6 @@ class _ReviewSummaryState extends State<ReviewSummary> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("Failed to confirm booking. Please try again."),
-          backgroundColor: Colors.red,
         ),
       );
     } finally {
@@ -156,6 +166,7 @@ class _ReviewSummaryState extends State<ReviewSummary> {
         }
 
         final barber = provider.barber!;
+        final selectedBarber = provider.selectedBabberId;
         final services = provider.selectedServices;
         final selectedDate = provider.selectedDate!;
         final selectedSlot = provider.selectedSlot!;
@@ -202,8 +213,8 @@ class _ReviewSummaryState extends State<ReviewSummary> {
                                 title: "Address",
                                 value: barber.address ?? "No address provided"),
                             _DetailRow(
-                                title: "Phone",
-                                value: barber.phone ?? "No phone provided"),
+                                title: "Name",
+                                value: selectedBarber.toString()),
                             _DetailRow(
                                 title: "Booking Date",
                                 value: DateFormat('MMMM dd, yyyy')

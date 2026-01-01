@@ -2,7 +2,9 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart' hide Notification;
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
+import 'package:project_sem7/Notification%20Services/NotificationServicesCustomer.dart';
 import 'package:project_sem7/uiscreen/ProfileUpdate.dart';
 import '../models/barber_model.dart';
 import '../shop_profile/shop_profile.dart';
@@ -134,23 +136,44 @@ Future<String> getCityFromCoordinates(double lat, double lng) async {
 }
 
 class _MainHomePageState extends State<MainHomePage> {
-  late Future<List<BarberModel>> _barberFuture;
+
+  Notificationservicescustomer notificationservicescustomer = Notificationservicescustomer();
+  Future<List<BarberModel>>? _barberFuture;
+
+  Future<void> _handleLocation() async {
+    try {
+      final position = await _getCurrentPosition();
+
+      setState(() {
+        _barberFuture = GooglePlacesService()
+            .getNearbyBarbers(position.latitude, position.longitude);
+      });
+    } catch (e) {
+      setState(() {
+        _barberFuture = Future.value(<BarberModel>[]);
+      });
+    }
+  }
+
 
 
   @override
   void initState() {
     super.initState();
 
-    // ✅ Start location + barbers loading
-    _barberFuture = _getCurrentPosition()
-        .then((position) => GooglePlacesService()
-        .getNearbyBarbers(position.latitude, position.longitude))
-        .catchError((e) {
-      return <BarberModel>[];
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // 1️⃣ Notification permission
+      await notificationservicescustomer.requestNotificaationPerission();
+      await notificationservicescustomer.getDeviceToken();
+      await notificationservicescustomer.firebaseInit(context);
+      await notificationservicescustomer.setupInteractMessage(context);
 
-    // ✅ Check if blocked on app start
-    _checkBlockedStatus();
+      // 2️⃣ Location permission (AFTER UI is ready)
+      await _handleLocation();
+
+      // 3️⃣ Blocked status
+      _checkBlockedStatus();
+    });
   }
 
   Future<void> _checkBlockedStatus() async {
@@ -267,7 +290,9 @@ class _MainHomePageState extends State<MainHomePage> {
           ],
         ),
       ),
-      body: FutureBuilder<List<BarberModel>>(
+      body: _barberFuture == null
+          ? const Center(child: CircularProgressIndicator())
+          : FutureBuilder<List<BarberModel>>(
         future: _barberFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {

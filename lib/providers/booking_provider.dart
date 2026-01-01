@@ -8,6 +8,7 @@ class BookingProvider extends ChangeNotifier {
   DateTime? _selectedDate;
   String? _selectedSlot;
   int _totalPrice = 0;
+  String? _selectedBarber;
 
   // Getters
   MergedBarber? get barber => _barber;
@@ -15,6 +16,8 @@ class BookingProvider extends ChangeNotifier {
   DateTime? get selectedDate => _selectedDate;
   String? get selectedSlot => _selectedSlot;
   int get totalPrice => _totalPrice;
+  String? get selectedBabberId => _selectedBarber;
+
 
   // Setters
   void setBarber(MergedBarber barber) {
@@ -34,16 +37,29 @@ class BookingProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setSelectedBarberId(String barbername){
+    _selectedBarber = barbername;
+    notifyListeners();
+  }
+
   void _calculateTotalPrice() {
     _totalPrice =
         _selectedServices.fold(0, (sum, s) => sum + (s['price'] as int));
+  }
+
+  int get totalServiceMinutes {
+    return _selectedServices.fold(
+      0,
+          (sum, s) => sum + (s['timeMinutes'] is int ? s['timeMinutes'] as int : 0),
+    );
   }
 
   bool get isBookingComplete =>
       _barber != null &&
           _selectedServices.isNotEmpty &&
           _selectedDate != null &&
-          _selectedSlot != null;
+          _selectedSlot != null &&
+          _selectedBarber != null;
 
   void clearBooking() {
     _barber = null;
@@ -51,6 +67,7 @@ class BookingProvider extends ChangeNotifier {
     _selectedDate = null;
     _selectedSlot = null;
     _totalPrice = 0;
+    _selectedBarber = null;
     notifyListeners();
   }
 
@@ -67,6 +84,7 @@ class BookingProvider extends ChangeNotifier {
           .toIso8601String()
           .split('T')[0],                   // YYYY-MM-DD
       "slot": _selectedSlot,
+      "barbername" : _selectedBarber,
       "createdAt": DateTime.now().toIso8601String(),
     };
   }

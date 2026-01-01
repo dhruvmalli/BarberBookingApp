@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:project_sem7/Notification%20Services/NotificationServicesCustomer.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -20,6 +21,7 @@ class _ProfileupdateState extends State<Profileupdate> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _mobilenoController = TextEditingController();
+  Notificationservicescustomer notificationservicescustomer = Notificationservicescustomer();
 
   final List<String> _avatars = [
     'assets/images/avatar1.png',
@@ -234,6 +236,7 @@ class _ProfileupdateState extends State<Profileupdate> {
                 SizedBox(height: 20.h),
                 SizedBox(height: 40.h, width: 320.w,
                 child: ElevatedButton(onPressed: () async {
+                  notificationservicescustomer.removeTokenOnLogout();
                   final prefs = await SharedPreferences.getInstance();
                   await prefs.setBool('is_logged_in', false);
                   await prefs.setString('user_type', 'customer');

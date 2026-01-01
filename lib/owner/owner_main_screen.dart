@@ -1,8 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:project_sem7/Notification%20Services/NotificationServicesOwner.dart';
+import 'package:project_sem7/owner/OnlineMethod.dart';
 import 'package:project_sem7/uiscreen/ProfileUpdate.dart';
 import '../uiscreen/notification.dart';
+import 'package:intl/intl.dart';
 
 class OwnerMainScreen extends StatefulWidget {
   const OwnerMainScreen({super.key});
@@ -14,7 +17,17 @@ class OwnerMainScreen extends StatefulWidget {
 class _OwnerMainScreenState extends State<OwnerMainScreen> {
   final firestore = FirebaseFirestore.instance;
   final Set<String> processedBookings = {};
+  Notificationservicesowner notificationservicesowner = Notificationservicesowner();
 
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    notificationservicesowner.requestNotificaationPerission();
+    notificationservicesowner.firebaseInit(context);
+    notificationservicesowner.setupInteractMessage(context);
+    notificationservicesowner.getDeviceToken();
+  }
   String _getGreetingMessage(String userName) {
     final hour = DateTime.now().hour;
     String greeting;
@@ -89,7 +102,7 @@ class _OwnerMainScreenState extends State<OwnerMainScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
             content:
-            Text(accepted ? "Booking Accepted ✅" : "Booking Declined ❌")),
+            Text(accepted ? "Booking Accepted" : "Booking Declined")),
       );
 
       // Continue updating in user's document if accepted
@@ -119,7 +132,7 @@ class _OwnerMainScreenState extends State<OwnerMainScreen> {
 
 
   Future<void> _updateArrivalStatus(
-      String docId, String bookingId, bool accepted) async {
+      String docId, String bookingId, bool accepted , ) async {
     try {
       final bookingDocRef = firestore.collection("BookedSlots").doc(docId);
       final snapshot = await bookingDocRef.get();
@@ -158,8 +171,8 @@ class _OwnerMainScreenState extends State<OwnerMainScreen> {
         SnackBar(
           content: Text(
             accepted
-                ? "Customer has been visited ✅"
-                : "Customer not on time ❌",
+                ? "Customer has been visited "
+                : "Customer not on time ",
           ),
         ),
       );
@@ -235,6 +248,118 @@ class _OwnerMainScreenState extends State<OwnerMainScreen> {
       return 0;
     }
   }
+
+  Future<void> _showPatmentSection(
+      String docId, String bookingId, String type, String selected) async {
+    try {
+      final bookingDocRef =
+      firestore.collection("BookedSlots").doc(docId);
+      final snapshot = await bookingDocRef.get();
+      if (!snapshot.exists) return;
+
+      final data = snapshot.data()!;
+
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      final allowedUserIds = List<String>.from(data['allowedUserIds'] ?? []);
+
+      if (!allowedUserIds.contains(user.uid)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("You are not authorized to update this booking"),
+          ),
+        );
+        return;
+      }
+
+      List<Map<String, dynamic>> bookings = List<Map<String, dynamic>>.from(data['bookings'] ?? []);
+
+      int ownerBookingIndex = bookings.indexWhere(
+            (b) => b['bookingId'] == bookingId,
+      );
+
+      if (ownerBookingIndex == -1) return;
+
+      bookings[ownerBookingIndex]['payment'] = type;
+      bookings[ownerBookingIndex]['paymentStatus']=selected;
+      final booking = Map<String, dynamic>.from(bookings[ownerBookingIndex]);
+
+      await bookingDocRef.update({
+        'bookings': bookings,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      setState(() => processedBookings.add(bookingId));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            (type == "Cash" && selected == "completed")
+                ? "Cash payment successfully"
+                : "Online payment successfully",
+          ),
+        ),
+      );
+
+      final userId = booking['userId'] as String;
+      final userDocRef = firestore.collection("BookedSlots").doc(userId);
+
+      final userSnapshot = await userDocRef.get();
+      if (!userSnapshot.exists) return;
+
+      final userData = userSnapshot.data()!;
+      List userBookings = List.from(userData['bookings'] ?? []);
+
+      int userBookingIndex =
+      userBookings.indexWhere((b) => (b['bookingId'] ?? "") == bookingId);
+
+      if (userBookingIndex != -1) {
+        userBookings[userBookingIndex]['payment'] = type;
+        userBookings[userBookingIndex]['paymentStatus']=selected;
+        await userDocRef.update({
+          'bookings': userBookings,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+
+      if (type == "Cash") {
+        final double totalAmount = (booking['totalPrice'] ?? 0).toDouble();
+        final double cutoffAmount = totalAmount * 0.20;
+        final double barberAmount = totalAmount - cutoffAmount;
+        final String bookingId = "${type}_"
+            "${cutoffAmount.toInt()}_"
+            "${DateFormat('yyyyMMdd').format(DateTime.now())}_"
+            "${DateTime.now().millisecondsSinceEpoch}";
+
+        // 3️⃣ Save payment using OWNER ID
+        final paymentDocRef =
+        firestore.collection("PaymentSection").doc(docId);
+
+        final Map<String, dynamic> finalPayment = {
+          'paymentType': "Cash",
+          'totalAmount': totalAmount,
+          'cutoffAmount': cutoffAmount,
+          'barberAmount': barberAmount,
+          'userId': userId,
+          'bookingId': bookingId
+        };
+
+        await paymentDocRef.set({
+          'ownerId': docId,
+          'finalPayment': FieldValue.arrayUnion([finalPayment]),
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      }
+
+      if(type == "Online" && selected == "initiated"){
+        Navigator.push(context, MaterialPageRoute(builder: (context) => Onlinemethod()));
+      }
+
+    } catch (e) {
+      debugPrint("Error updating booking payment: $e");
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -312,7 +437,7 @@ class _OwnerMainScreenState extends State<OwnerMainScreen> {
                 return const Center(child: CircularProgressIndicator());
               }
               if (!snapshot.hasData || snapshot.data!.data() == null) {
-                return const Center(child: Text("No bookings found"));
+                return const Center(child: Text("No bookings found",style: TextStyle(fontSize: 18,fontWeight: FontWeight.bold),));
               }
 
               final data = snapshot.data!.data() as Map<String, dynamic>;
@@ -320,7 +445,7 @@ class _OwnerMainScreenState extends State<OwnerMainScreen> {
               (data['bookings'] as List<dynamic>? ?? []).reversed.toList();
 
               if (bookings.isEmpty) {
-                return const Center(child: Text("No bookings available"));
+                return const Center(child: Text("No bookings available",style: TextStyle(fontSize: 18,fontWeight: FontWeight.bold)));
               }
 
               final today = DateTime.now();
@@ -402,12 +527,20 @@ class _OwnerMainScreenState extends State<OwnerMainScreen> {
                             booking['services'] as List<dynamic>? ?? [];
                         final bool? status = booking['status'];
                         final bool? arrived = booking['arrived'];
+                        final String? payment = booking['payment'];
+                        final String? paymentStatus = booking['paymentStatus'];
 
                         final showAcceptDeclineButtons =
                             !processedBookings.contains(bookingId) &&
                                 status == null;
                         final showArrivalButtons =
                             status == true && arrived == null;
+
+                        final showPaymentMethod =
+                            status ==true && arrived == true && paymentStatus == null;
+
+                        final bool showPaymentMessage =
+                            status == true && arrived == true && payment != null && paymentStatus != null;
 
                         return Card(
                           color: Colors.white,
@@ -487,7 +620,7 @@ class _OwnerMainScreenState extends State<OwnerMainScreen> {
                                   }).toList(),
                                 ),
                                 const SizedBox(height: 8),
-                                Text("Total: ₹${booking['totalPrice'] ?? 0}",
+                                Text("Total Amount: ₹${booking['totalPrice'] ?? 0}",
                                     style: const TextStyle(
                                         fontWeight: FontWeight.bold)),
                                 const SizedBox(height: 16),
@@ -497,7 +630,7 @@ class _OwnerMainScreenState extends State<OwnerMainScreen> {
                                       Expanded(
                                         child: ElevatedButton(
                                           style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.green,
+                                            backgroundColor: Colors.orange,
                                             padding: const EdgeInsets.symmetric(
                                                 vertical: 14),
                                             shape: RoundedRectangleBorder(
@@ -511,14 +644,14 @@ class _OwnerMainScreenState extends State<OwnerMainScreen> {
                                                   booking['bookingId'],
                                                   true),
                                           child: const Text("Accept",
-                                              style: TextStyle(fontSize: 16)),
+                                              style: TextStyle(fontSize: 16,color: Colors.white)),
                                         ),
                                       ),
                                       const SizedBox(width: 12),
                                       Expanded(
                                         child: ElevatedButton(
                                           style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.red,
+                                            backgroundColor: Colors.orange,
                                             padding: const EdgeInsets.symmetric(
                                                 vertical: 14),
                                             shape: RoundedRectangleBorder(
@@ -532,7 +665,7 @@ class _OwnerMainScreenState extends State<OwnerMainScreen> {
                                                   booking['bookingId'],
                                                   false),
                                           child: const Text("Decline",
-                                              style: TextStyle(fontSize: 16)),
+                                              style: TextStyle(fontSize: 16,color: Colors.white)),
                                         ),
                                       ),
                                     ],
@@ -543,7 +676,7 @@ class _OwnerMainScreenState extends State<OwnerMainScreen> {
                                       Expanded(
                                         child: ElevatedButton(
                                           style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.blue,
+                                            backgroundColor: Colors.orange,
                                             padding: const EdgeInsets.symmetric(
                                                 vertical: 14),
                                             shape: RoundedRectangleBorder(
@@ -555,7 +688,7 @@ class _OwnerMainScreenState extends State<OwnerMainScreen> {
                                               _updateArrivalStatus(
                                                   ownerUid, booking['bookingId'], true),
                                           child: const Text("Customer visited",
-                                              style: TextStyle(fontSize: 16)),
+                                              style: TextStyle(fontSize: 16,color: Colors.white)),
                                         ),
                                       ),
                                       const SizedBox(width: 12),
@@ -574,30 +707,85 @@ class _OwnerMainScreenState extends State<OwnerMainScreen> {
                                               _updateArrivalStatus(
                                                   ownerUid, booking['bookingId'], false),
                                           child: const Text("Not on time",
-                                              style: TextStyle(fontSize: 16)),
+                                              style: TextStyle(fontSize: 16,color: Colors.white)),
                                         ),
                                       ),
                                     ],
                                   ),
+                                ] else if (showPaymentMethod) ...[
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: ElevatedButton(
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.orange,
+                                            padding: const EdgeInsets.symmetric(
+                                                vertical: 14),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                              BorderRadius.circular(12),
+                                            ),
+                                          ),
+                                          onPressed: () =>
+                                              _showPatmentSection(
+                                                  ownerUid, booking['bookingId'], "Cash" , "complete"),
+                                          child: const Text("Cash",
+                                              style: TextStyle(fontSize: 16,color: Colors.white)),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: ElevatedButton(
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.orange,
+                                            padding: const EdgeInsets.symmetric(
+                                                vertical: 14),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                              BorderRadius.circular(12),
+                                            ),
+                                          ),
+                                          onPressed: () =>
+                                              _showPatmentSection(
+                                                  ownerUid, booking['bookingId'], "Online" , "initiated"),
+                                          child: const Text("Online",
+                                              style: TextStyle(fontSize: 16,color: Colors.white)),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ]else if (showPaymentMessage) ...[
+                                  Text(
+                                    (payment == "Cash" && paymentStatus == "complete")
+                                  ? "Cash payment selected" : "Online payment selected",
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                      color: payment == "Cash"
+                                        ? Colors.black : Colors.black
+                                    ),
+                                  )
                                 ] else if (status != null) ...[
                                   Text(
                                     arrived == true
-                                        ? "Customer has been visited ✅"
+                                        ? "Customer has been visited"
                                         : arrived == false
-                                        ? "Customer not on time ❌"
-                                        : status
-                                        ? "Booking Accepted ✅"
-                                        : "Booking Declined ❌",
+                                        ? "Customer not on time"
+                                        : status == true
+                                        ? "Booking Accepted"
+                                        : "Booking Declined",
+
+
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 16,
                                       color: arrived == true
-                                          ? Colors.green
+                                          ? Colors.black
                                           : arrived == false
-                                          ? Colors.red
+                                          ? Colors.black
                                           : status
-                                          ? Colors.green
-                                          : Colors.red,
+                                          ? Colors.black
+                                          : Colors.black
                                     ),
                                   ),
                                 ],
